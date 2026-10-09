@@ -60,6 +60,7 @@ Export via CLI or HTTP — full glossary in **[docs/MDX_MDD_GUIDE.md](docs/MDX_M
 uv run python -m src.mdict.export --data-source sql --output-dir build/mdict --limit 100
 mdict -m build/mdict/wikiferheng.mdx
 
+# Start API first: uv run uvicorn src.api.app:app --reload --host 127.0.0.1 --port 8000
 curl -s http://127.0.0.1:8000/mdx/about | jq .
 curl -s -X POST http://127.0.0.1:8000/mdx/build -H 'Content-Type: application/json' \
   -d '{"data_source":"zim","limit":10}' | jq .

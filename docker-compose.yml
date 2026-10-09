@@ -14,8 +14,8 @@ services:
       POSTGRES_USER: wiktionary
       POSTGRES_PASSWORD: wiktionary
       POSTGRES_DB: wiktionary
-    ports:
-      - "5432:5432"
+    # No host port: API reaches postgres via Docker network. For host tools use:
+    # docker compose exec postgres psql -U wiktionary -d wiktionary
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

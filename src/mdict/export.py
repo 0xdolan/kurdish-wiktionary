@@ -119,3 +119,9 @@ async def build_mdict_artifacts(
         entry_count=entry_count,
         manifest_path=manifest_path,
     )
+
+
+if __name__ == "__main__":
+    from src.mdict.__main__ import main
+
+    main()
