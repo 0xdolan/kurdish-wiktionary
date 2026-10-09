@@ -82,14 +82,16 @@ mdict --title title.html --description description.html -a dict.txt wikiferheng.
 
 Each record is one line (conceptually **key + definition body**). The pipeline generator MUST emit UTF-8 and escape/control newlines inside HTML so one entry = one line. Exact delimiter rules follow `mdict-utils` expectations (same as legacy MDict builder tools; when in doubt, generate a small sample and round-trip with `mdict -x`).
 
-**Project convention (to implement in `src/mdict/txt_writer.py`):**
+**Project convention (`src/mdict/txt_writer.py`):** MDict block syntax (see `mdict_utils.writer.pack_mdx_txt`):
 
 ```
-{headword}\t{html_body}
+{headword}
+{html_body lines}
+</>
 ```
 
 - `headword`: Wiktionary title / lemma (NFC Unicode).
-- `html_body`: Full `<html>...</html>` or MDict-style fragment; include `<link>` to shared CSS in MDD if used.
+- `html_body`: Full `<html>...</html>`; include `<link>` to shared CSS in MDD if used.
 
 Multiple part files or a directory of `.txt` files are supported:
 

@@ -54,13 +54,15 @@ Use header `X-Data-Source: zim|sql` to override `DEFAULT_DATA_SOURCE` from `.env
 
 ## MDX / MDDict export
 
-Phase 7 adds automated export; the manual flow and glossary are in **[docs/MDX_MDD_GUIDE.md](docs/MDX_MDD_GUIDE.md)**.
+Export via CLI or HTTP — full glossary in **[docs/MDX_MDD_GUIDE.md](docs/MDX_MDD_GUIDE.md)**.
 
 ```bash
-uv add mdict-utils
-# After export staging exists (Phase 7):
-mdict --title title.html --description description.html -a dict.txt wikiferheng.mdx
-mdict -m wikiferheng.mdx
+uv run python -m src.mdict.export --data-source sql --output-dir build/mdict --limit 100
+mdict -m build/mdict/wikiferheng.mdx
+
+curl -s http://127.0.0.1:8000/mdx/about | jq .
+curl -s -X POST http://127.0.0.1:8000/mdx/build -H 'Content-Type: application/json' \
+  -d '{"data_source":"zim","limit":10}' | jq .
 ```
 
 ## Local development (uv)
@@ -102,4 +104,4 @@ More: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ## Status
 
-Phases **0–6** (foundation through Docker/runbook) are implemented; **Phase 7** (MDX/MDD export module and API) is next — see [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
+Phases **0–7** from [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) are implemented (ingest, API, Docker stack, MDX/MDD export).

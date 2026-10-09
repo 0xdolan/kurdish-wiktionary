@@ -13,6 +13,7 @@ WORKDIR /app
 RUN useradd --create-home --uid 10001 appuser
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 COPY --chown=appuser:appuser src ./src
+COPY --chown=appuser:appuser assets ./assets
 COPY --chown=appuser:appuser migrations ./migrations
 COPY --chown=appuser:appuser alembic.ini ./
 COPY docker/entrypoint-worker.sh /app/entrypoint.sh

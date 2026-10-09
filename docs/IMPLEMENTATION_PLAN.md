@@ -12,8 +12,8 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 
 | Field | Value |
 |-------|--------|
-| **Current phase** | Phase 7 — ready to start |
-| **Last completed task** | 6.4 |
+| **Current phase** | All planned phases complete |
+| **Last completed task** | 7.12 |
 | **Blockers** | None recorded |
 | **Branch / commit** | feat/phase-1-extraction (local) |
 
@@ -28,7 +28,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 | 4 | FastAPI service | ✅ Done | ✅ |
 | 5 | Tests, CI, hardening | ✅ Done | ✅ |
 | 6 | Documentation & ops runbook | ✅ Done | ✅ |
-| 7 | MDX/MDD export (mdict-utils) | ⬜ Not started | ⬜ |
+| 7 | MDX/MDD export (mdict-utils) | ✅ Done | ✅ |
 
 **Legend:** ⬜ Not started · 🟡 In progress · ✅ Done
 
@@ -255,18 +255,18 @@ uv run pytest --cov=src --cov-report=term-missing
 
 ### Tasks
 
-- [ ] **7.1** `src/mdict/renderer.py` — `WiktionaryEntry` → HTML fragment (MDict-friendly CSS hooks).
-- [ ] **7.2** `src/mdict/txt_writer.py` — UTF-8 `dict.txt` stream (`headword\thtml`); handle batch/chunk files for scale.
-- [ ] **7.3** `src/mdict/resources.py` — collect media from ZIM or static assets; rewrite HTML URLs to MDD-relative paths.
-- [ ] **7.4** `src/mdict/pack.py` — async subprocess wrapper around `mdict` CLI (pack + meta + keys + query smoke).
-- [ ] **7.5** `src/mdict/extract.py` — unpack to `MDX_WORK_DIR/{job_id}/`.
-- [ ] **7.6** `src/mdict/jobs.py` — in-process or DB-backed job registry (status, progress, errors).
-- [ ] **7.7** `assets/mdict/templates/title.html` + `description.html` (Wîkîferheng provenance).
-- [ ] **7.8** CLI `python -m src.mdict.export` mirroring POST `/mdx/build` options.
-- [ ] **7.9** `src/api/routers/mdx.py` — routes per spec §9.2 (`/mdx/about`, `/mdx/build`, `/mdx/extract`, …).
-- [ ] **7.10** OpenAPI: `GET /mdx/about` returns markdown/HTML summary + links (mdict-analysis, writemdict, mdict-utils).
-- [ ] **7.11** Unit tests: renderer + txt_writer; integration: 3-entry fixture round-trip pack/unpack.
-- [ ] **7.12** API tests: build job with `limit=10`, download zip, verify `mdict -m` on artifact.
+- [x] **7.1** `src/mdict/renderer.py` — `WiktionaryEntry` → HTML fragment (MDict-friendly CSS hooks).
+- [x] **7.2** `src/mdict/txt_writer.py` — UTF-8 `dict.txt` stream (MDict `</>` blocks); handle batch/chunk files for scale.
+- [x] **7.3** `src/mdict/resources.py` — collect media from ZIM or static assets; rewrite HTML URLs to MDD-relative paths.
+- [x] **7.4** `src/mdict/pack.py` — async subprocess wrapper around `mdict` CLI (pack + meta + keys + query smoke).
+- [x] **7.5** `src/mdict/extract.py` — unpack to `MDX_WORK_DIR/{job_id}/`.
+- [x] **7.6** `src/mdict/jobs.py` — in-process or DB-backed job registry (status, progress, errors).
+- [x] **7.7** `assets/mdict/templates/title.html` + `description.html` (Wîkîferheng provenance).
+- [x] **7.8** CLI `python -m src.mdict.export` mirroring POST `/mdx/build` options.
+- [x] **7.9** `src/api/routers/mdx.py` — routes per spec §9.2 (`/mdx/about`, `/mdx/build`, `/mdx/extract`, …).
+- [x] **7.10** OpenAPI: `GET /mdx/about` returns markdown/HTML summary + links (mdict-analysis, writemdict, mdict-utils).
+- [x] **7.11** Unit tests: renderer + txt_writer; integration: 3-entry fixture round-trip pack/unpack.
+- [x] **7.12** API tests: build job with `limit=10`, download zip, verify `mdict -m` on artifact.
 
 ### Deliverables
 

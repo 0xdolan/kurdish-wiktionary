@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.state import AppState
 from src.config import DataSource, Settings, get_settings
 from src.extraction.zim_reader import ZimReader
+from src.mdict.jobs import JobRegistry
 from src.repository.db.base import dispose_engine, get_db_session, init_engine
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -44,7 +45,10 @@ async def lifespan_context(app: FastAPI, settings: Settings) -> AsyncIterator[No
     zim_reader: ZimReader | None = None
     if settings.zim_path.is_file():
         zim_reader = ZimReader(settings.zim_path)
-    app.state.wiktionary = AppState(zim_reader=zim_reader)
+    app.state.wiktionary = AppState(
+        zim_reader=zim_reader,
+        mdict_jobs=JobRegistry(max_concurrent=settings.mdx_build_max_concurrent),
+    )
     try:
         yield
     finally:
