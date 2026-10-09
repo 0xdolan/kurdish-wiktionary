@@ -12,16 +12,16 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 
 | Field | Value |
 |-------|--------|
-| **Current phase** | Phase 0 — not started |
-| **Last completed task** | — |
+| **Current phase** | Phase 1 — ready to start |
+| **Last completed task** | 0.8 |
 | **Blockers** | None recorded |
-| **Branch / commit** | — |
+| **Branch / commit** | master (Phase 0 local) |
 
 ### Phase status overview
 
 | Phase | Name | Status | Exit criteria met? |
 |-------|------|--------|--------------------|
-| 0 | Foundation & tooling | ⬜ Not started | ⬜ |
+| 0 | Foundation & tooling | ✅ Done | ✅ |
 | 1 | ZIM extraction & schema | ⬜ Not started | ⬜ |
 | 2 | Hybrid repository layer | ⬜ Not started | ⬜ |
 | 3 | PostgreSQL schema & migrations | ⬜ Not started | ⬜ |
@@ -52,14 +52,14 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 
 ### Tasks
 
-- [ ] **0.1** Restructure or nest `wiktionary_pipeline/` per spec; keep existing `zim/` at repo root or configure `ZIM_PATH`.
-- [ ] **0.2** `pyproject.toml`: project metadata, `[tool.uv]`, dependencies (fastapi, uvicorn, sqlalchemy[asyncio], asyncpg, alembic, pydantic-settings, libzim, selectolax, beautifulsoup4, httpx, **mdict-utils**).
-- [ ] **0.3** Dev dependencies: pytest, pytest-asyncio, pytest-cov, mypy, ruff, testcontainers.
-- [ ] **0.4** `uv lock` + `uv sync`; document in README.
-- [ ] **0.5** `src/config.py` — Pydantic Settings (all env vars from spec §12).
-- [ ] **0.6** `src/core/` — base exceptions (`AppError`, `NotFoundError`, `ZimError`, `DatabaseError`), logging helper.
-- [ ] **0.7** `ruff` + `mypy` strict config in `pyproject.toml`.
-- [ ] **0.8** Minimal `src/api/app.py` with empty router; `uvicorn` entrypoint.
+- [x] **0.1** Restructure or nest `wiktionary_pipeline/` per spec; keep existing `zim/` at repo root or configure `ZIM_PATH`.
+- [x] **0.2** `pyproject.toml`: project metadata, `[tool.uv]`, dependencies (fastapi, uvicorn, sqlalchemy[asyncio], asyncpg, alembic, pydantic-settings, libzim, selectolax, beautifulsoup4, httpx, **mdict-utils**).
+- [x] **0.3** Dev dependencies: pytest, pytest-asyncio, pytest-cov, mypy, ruff, testcontainers.
+- [x] **0.4** `uv lock` + `uv sync`; document in README.
+- [x] **0.5** `src/config.py` — Pydantic Settings (all env vars from spec §12).
+- [x] **0.6** `src/core/` — base exceptions (`AppError`, `NotFoundError`, `ZimError`, `DatabaseError`), logging helper.
+- [x] **0.7** `ruff` + `mypy` strict config in `pyproject.toml`.
+- [x] **0.8** Minimal `src/api/app.py` with empty router; `uvicorn` entrypoint.
 
 ### Deliverables
 

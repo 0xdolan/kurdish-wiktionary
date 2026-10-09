@@ -9,5 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
+# Local env
+.env
+
 # Kiwix archives (download locally; see README)
 zim/**/*.zim

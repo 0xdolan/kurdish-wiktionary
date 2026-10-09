@@ -1,9 +1,85 @@
 [project]
 name = "wikitionary-to-mdx"
 version = "0.1.0"
-description = "Add your description here"
+description = "Kurdish Wiktionary ZIM ingest, API, and MDX/MDD export"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "alembic>=1.14",
+    "asyncpg>=0.30",
+    "beautifulsoup4>=4.12",
+    "fastapi>=0.115",
+    "httpx>=0.28",
+    "libzim>=3.13",
+    "mdict-utils>=1.3.14",
+    "pydantic-settings>=2.6",
+    "selectolax>=0.3",
+    "sqlalchemy[asyncio]>=2.0",
+    "uvicorn[standard]>=0.32",
+]
 
-# Planned (Phase 0/7): mdict-utils — MDX/MDD pack/unpack; see docs/MDX_MDD_GUIDE.md
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.13",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "pytest>=8.3",
+    "ruff>=0.8",
+    "testcontainers>=4.9",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.13",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "pytest>=8.3",
+    "ruff>=0.8",
+    "testcontainers>=4.9",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+warn_unused_ignores = true
+mypy_path = "."
+explicit_package_bases = true
+packages = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["libzim.*", "testcontainers.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 0
+show_missing = true

@@ -1,0 +1,31 @@
+---
+description: FitFlow git workflow — fetch, branch, inspect, test, commit, push, PR
+alwaysApply: true
+---
+
+# FitFlow (git)
+
+Full guide: [docs/FITFLOW.md](docs/FITFLOW.md). Follow for **commit, push, pull, branch, PR**.
+
+## FITFLOW steps
+
+1. **Fetch** — `git fetch origin`; before push, `git pull --rebase origin main` (or `master`) on the current branch.
+2. **Inspect** — Before every commit: parallel `git status`, `git diff`, `git diff --staged`, `git log -5 --oneline`.
+3. **Target** — Work on `feat/`, `fix/`, `docs/`, `chore/`, `test/` branches; never stage `zim/**/*.zim`, `.venv/`, or secrets.
+4. **Format** — If Python/source changed: `uv run ruff check`, `mypy src`, `pytest` when available.
+5. **Log** — Commit **only when the user asks**. Message via HEREDOC; explain why. Failed hook → fix → **new** commit (no amend unless user rules allow).
+6. **Origin** — Push with `git push -u origin HEAD` on new branches. **Never** force-push `main`/`master`. No push unless user requested.
+7. **Workflow** — PRs via `gh pr create` per user PR rule; no merge/push without explicit ask.
+
+## Hard bans
+
+- No `git config` changes
+- No `--no-verify` unless user explicitly requests
+- No force-push to default branch; no hard reset on shared history without explicit ask
+
+## Commit sequence (when user says commit)
+
+1. Inspect (status, diff, log) in parallel
+2. Stage only intended paths (not blind `git add -A` if large untracked files exist)
+3. `git commit -m "$(cat <<'EOF' ... EOF)"`
+4. `git status` to verify clean or expected state
