@@ -60,6 +60,16 @@ def _normalize_heading(value: str) -> str:
     return value.casefold().replace("î", "i").replace("ê", "e").replace("û", "u").replace("ş", "s")
 
 
+def _unique_strings(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in values:
+        if value and value not in seen:
+            seen.add(value)
+            out.append(value)
+    return out
+
+
 def _collect_list_items(root: LexborNode) -> list[str]:
     items: list[str] = []
     for li in root.css("li"):
@@ -67,6 +77,64 @@ def _collect_list_items(root: LexborNode) -> list[str]:
         if text and len(text) > 1:
             items.append(text)
     return items
+
+
+def _collect_wiktionary_links(root: LexborNode) -> list[str]:
+    lemmas: list[str] = []
+    for anchor in root.css("a"):
+        title = anchor.attributes.get("title", "")
+        text = _clean_text(anchor)
+        candidate = title.strip() if title else text
+        if candidate and not candidate.startswith("Category:"):
+            lemmas.append(candidate)
+    return lemmas
+
+
+def _node_html_fragment(node: LexborNode) -> str:
+    return node.html or ""
+
+
+def _content_after_heading(heading: LexborNode) -> tuple[list[str], str]:
+    text_items: list[str] = []
+    html_chunks: list[str] = []
+    sibling = heading.next
+    while sibling is not None and sibling.tag not in {"h2", "h3", "h4"}:
+        html_chunks.append(_node_html_fragment(sibling))
+        if sibling.tag in {"ul", "ol", "dl", "p"}:
+            text_items.extend(_collect_list_items(sibling))
+            if sibling.tag == "p":
+                paragraph = _clean_text(sibling)
+                if paragraph:
+                    text_items.append(paragraph)
+            text_items.extend(_collect_wiktionary_links(sibling))
+        sibling = sibling.next
+    return text_items, "".join(html_chunks)
+
+
+def _gather_section_fields(root: LexborNode) -> tuple[dict[str, list[str]], dict[str, str]]:
+    buckets: dict[str, list[str]] = {
+        "synonyms": [],
+        "antonyms": [],
+        "derived_terms": [],
+    }
+    section_html: dict[str, str] = {}
+
+    for heading in root.css("h2, h3, h4"):
+        label = _heading_label(heading)
+        if not label:
+            continue
+        bucket = _section_bucket(label)
+        if bucket not in buckets:
+            continue
+        items, html_frag = _content_after_heading(heading)
+        buckets[bucket].extend(items)
+        key = _normalize_heading(label)
+        if html_frag:
+            section_html[key] = html_frag
+
+    for key in buckets:
+        buckets[key] = _unique_strings(buckets[key])
+    return buckets, section_html
 
 
 def _extract_ipa(tree: LexborHTMLParser) -> list[str]:
@@ -120,7 +188,7 @@ def _section_bucket(heading: str) -> str:
         return "derived"
     if norm.startswith("navd") or norm.startswith("peyv"):
         return "pos"
-    return "definitions"
+    return "other"
 
 
 def parse_wiktionary_html(
@@ -134,9 +202,18 @@ def parse_wiktionary_html(
 
     part_of_speech: list[str] = []
     definitions: list[str] = []
+    synonyms: list[str] = []
+    antonyms: list[str] = []
+    derived_terms: list[str] = []
+    section_html: dict[str, str] = {}
     etymology: str | None = None
 
     if root is not None:
+        section_fields, section_html = _gather_section_fields(root)
+        synonyms = section_fields["synonyms"]
+        antonyms = section_fields["antonyms"]
+        derived_terms = section_fields["derived_terms"]
+
         for heading in root.css("h2, h3, h4"):
             label = _heading_label(heading)
             if not label:
@@ -173,26 +250,23 @@ def parse_wiktionary_html(
         for ol in root.css("ol"):
             definitions.extend(_collect_list_items(ol))
 
-    seen_def: set[str] = set()
-    unique_definitions: list[str] = []
-    for d in definitions:
-        if d not in seen_def:
-            seen_def.add(d)
-            unique_definitions.append(d)
+    unique_definitions = _unique_strings(definitions)
 
     metadata = dict(metadata_base or {})
     metadata.setdefault("layout_version", LAYOUT_VERSION)
+    if section_html:
+        metadata["section_html"] = section_html
 
     return WiktionaryEntry(
         entry=decode_plain_text(entry),
-        part_of_speech=part_of_speech,
+        part_of_speech=_unique_strings(part_of_speech),
         definitions=unique_definitions,
-        phonetic_transcriptions=phonetic_transcriptions,
-        pronunciations=pronunciations,
-        examples=examples,
-        synonyms=[],
-        antonyms=[],
+        phonetic_transcriptions=_unique_strings(phonetic_transcriptions),
+        pronunciations=_unique_strings(pronunciations),
+        examples=_unique_strings(examples),
+        synonyms=synonyms,
+        antonyms=antonyms,
         etymology=etymology,
-        derived_terms=[],
+        derived_terms=derived_terms,
         metadata=metadata,
     )

@@ -45,11 +45,12 @@ class Settings(BaseSettings):
     mdx_default_title: str = Field(default="Wîkîferheng")
     mdx_build_max_concurrent: int = Field(default=1, ge=1)
     mdx_include_media: bool = True
+    media_export_dir: Path = Field(default=Path("build/media"))
 
     app_name: str = "wikitionary-to-mdx"
     api_prefix: str = ""
 
-    @field_validator("zim_path", "mdx_work_dir", mode="before")
+    @field_validator("zim_path", "mdx_work_dir", "media_export_dir", mode="before")
     @classmethod
     def expand_path(cls, value: str | Path) -> Path:
         return Path(value).expanduser()

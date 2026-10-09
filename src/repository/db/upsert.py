@@ -23,6 +23,17 @@ def _language_code(entry: WiktionaryEntry) -> str:
     return str(raw) if raw else "ku"
 
 
+def _dedupe_preserve_order(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in values:
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        out.append(value)
+    return out
+
+
 async def _replace_child_rows(
     session: AsyncSession,
     entry_id: int,
@@ -32,7 +43,7 @@ async def _replace_child_rows(
     await session.execute(delete(row_cls).where(row_cls.entry_id == entry_id))
     rows = [
         row_cls(entry_id=entry_id, ordinal=index, value=value)
-        for index, value in enumerate(values)
+        for index, value in enumerate(_dedupe_preserve_order(values))
     ]
     session.add_all(rows)
 

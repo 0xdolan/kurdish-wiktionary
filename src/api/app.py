@@ -10,7 +10,7 @@ from starlette.responses import JSONResponse
 from src.api.deps import lifespan_context
 from src.api.errors import problem_from_request, problem_response
 from src.api.middleware.rate_limit import RateLimitMiddleware
-from src.api.routers import catalog, health, mdx, words
+from src.api.routers import catalog, health, lexicon, mdx, words
 from src.config import get_settings
 from src.core.exceptions import AppError, DatabaseError
 from src.core.logging import configure_logging, get_logger
@@ -55,6 +55,7 @@ def create_app() -> FastAPI:
     app.include_router(words.router, prefix=settings.api_prefix)
     app.include_router(mdx.router, prefix=settings.api_prefix)
     app.include_router(catalog.router, prefix=settings.api_prefix)
+    app.include_router(lexicon.router, prefix=settings.api_prefix)
 
     @app.exception_handler(AppError)
     async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:

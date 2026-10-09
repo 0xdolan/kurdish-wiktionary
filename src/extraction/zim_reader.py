@@ -47,6 +47,24 @@ class ZimReader:
             path=self._path,
         )
 
+    def has_path(self, path: str) -> bool:
+        if not self._path.is_file():
+            return False
+        return bool(self._archive.has_entry_by_path(path))
+
+    def read_entry_bytes_by_path(self, path: str) -> bytes | None:
+        if not self.has_path(path):
+            return None
+        entry = self._archive.get_entry_by_path(path)
+        if entry.is_redirect:
+            entry = entry.get_redirect_entry()
+        try:
+            item = entry.get_item()
+        except RuntimeError:
+            return None
+        raw: bytes = item.content.tobytes()
+        return raw
+
     def get_article_by_title(self, title: str) -> ZimArticle | None:
         if not self._path.is_file():
             return None

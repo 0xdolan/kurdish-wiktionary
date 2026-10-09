@@ -47,6 +47,23 @@ def test_parse_messy_html_filters_blank_definitions() -> None:
     assert entry.pronunciations[0].endswith(".wav")
 
 
+SYNONYM_SECTION = """
+<div class="mw-parser-output">
+  <h3><span>Beranber</span></h3>
+  <ul><li><a href="/wiki/heval" title="heval">heval</a></li><li>dost</li></ul>
+  <h3><span>Navdêr</span></h3>
+  <ol><li>friend</li></ol>
+</div>
+"""
+
+
+def test_parse_synonym_and_antonym_sections() -> None:
+    entry = parse_wiktionary_html("test", SYNONYM_SECTION)
+    assert "heval" in entry.synonyms or "dost" in entry.synonyms
+    assert entry.definitions == ["friend"]
+    assert entry.metadata.get("section_html")
+
+
 def test_parse_decodes_html_entities_in_definitions() -> None:
     html = """
     <div class="mw-parser-output">
