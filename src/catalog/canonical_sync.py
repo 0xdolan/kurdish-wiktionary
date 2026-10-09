@@ -6,6 +6,7 @@ from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.catalog.cli_progress import ProgressTick
 from src.extraction.normalize import normalize_entry_key
 from src.extraction.zim_reader import ZimReader
 from src.repository.db.models.canonical import CanonicalExtractStatus, CanonicalLemmaModel
@@ -52,7 +53,7 @@ async def sync_canonical_wordlist(
     zim_paths: list[Path],
     *,
     batch_size: int = 2000,
-    progress: Callable[[int, int], None] | None = None,
+    progress: Callable[[ProgressTick], None] | None = None,
 ) -> CanonicalSyncResult:
     merged = await asyncio.to_thread(_scan_zims, zim_paths)
     keys = list(merged.keys())
@@ -94,7 +95,8 @@ async def sync_canonical_wordlist(
         await session.commit()
         upserted += len(rows)
         if progress is not None:
-            progress(min(offset + len(chunk_keys), total), total)
+            done = min(offset + len(chunk_keys), total)
+            progress(ProgressTick(done=done, total=total))
 
     return CanonicalSyncResult(
         zim_files=zim_count,

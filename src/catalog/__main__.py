@@ -3,19 +3,12 @@ import asyncio
 from pathlib import Path
 
 from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    Progress,
-    TaskID,
-    TaskProgressColumn,
-    TextColumn,
-    TimeRemainingColumn,
-)
 from rich.table import Table
 
 from src.catalog.audit import audit_canonical_extraction
 from src.catalog.canonical_extract import extract_pending_canonical
 from src.catalog.canonical_sync import sync_canonical_wordlist
+from src.catalog.cli_progress import CatalogJobProgress, ProgressTick
 from src.catalog.extract import extract_pending_wordlist
 from src.catalog.stats import fetch_canonical_stats, fetch_catalog_stats, scan_all_zim_stats
 from src.catalog.sync import sync_wordlist_to_sql
@@ -165,23 +158,33 @@ async def _run_sync(zim_path: Path) -> None:
     init_engine(settings.database_url)
     session_factory = get_session_factory()
 
-    with Progress(
-        TextColumn("[bold blue]Sync wordlist"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeRemainingColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("titles", total=1)
+    with CatalogJobProgress(console, "Sync wordlist") as job:
+        started = False
 
-        def on_progress(done: int, total: int) -> None:
-            progress.update(task, total=total, completed=done)
+        def on_progress(tick: ProgressTick) -> None:
+            nonlocal started
+            if not started:
+                job.start_batch(
+                    batch_index=1,
+                    batch_total=1,
+                    item_total=tick.total,
+                    corpus_pending=tick.total,
+                )
+                started = True
+            job.on_tick(tick)
 
         async with session_factory() as session:
             result = await sync_wordlist_to_sql(session, zim_path, progress=on_progress)
 
+        job.finish_batch(
+            attempted=result.scanned,
+            extracted=result.inserted,
+            skipped=0,
+            failed=0,
+        )
+
     console.print(
-        f"[green]Done[/green]: scanned={result.scanned} new_rows={result.inserted} "
+        f"[green]Done[/green]: scanned={result.scanned:,} new_rows={result.inserted:,} "
         f"(duplicates skipped by unique constraint)"
     )
     await dispose_engine()
@@ -193,25 +196,35 @@ async def _run_sync_canonical(zim_paths: list[Path]) -> None:
     init_engine(settings.database_url)
     session_factory = get_session_factory()
 
-    with Progress(
-        TextColumn("[bold blue]Sync canonical"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeRemainingColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("lemmas", total=1)
+    with CatalogJobProgress(console, "Sync canonical") as job:
+        started = False
 
-        def on_progress(done: int, total: int) -> None:
-            progress.update(task, total=total, completed=done)
+        def on_progress(tick: ProgressTick) -> None:
+            nonlocal started
+            if not started:
+                job.start_batch(
+                    batch_index=1,
+                    batch_total=1,
+                    item_total=tick.total,
+                    corpus_pending=tick.total,
+                )
+                started = True
+            job.on_tick(tick)
 
         async with session_factory() as session:
             result = await sync_canonical_wordlist(session, zim_paths, progress=on_progress)
 
+        job.finish_batch(
+            attempted=result.unique_lemmas,
+            extracted=result.upserted,
+            skipped=0,
+            failed=0,
+        )
+
     console.print(
-        f"[green]Done[/green]: zims={result.zim_files} unique_lemmas={result.unique_lemmas} "
-        f"upserted={result.upserted} in_all_zims={result.in_all_zims} "
-        f"only_one_zim={result.in_single_zim}"
+        f"[green]Done[/green]: zims={result.zim_files} unique_lemmas={result.unique_lemmas:,} "
+        f"upserted={result.upserted:,} in_all_zims={result.in_all_zims:,} "
+        f"only_one_zim={result.in_single_zim:,}"
     )
     await dispose_engine()
 
@@ -222,17 +235,21 @@ async def _run_extract(zim_path: Path, limit: int) -> None:
     init_engine(settings.database_url)
     session_factory = get_session_factory()
 
-    with Progress(
-        TextColumn("[bold blue]Extract"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeRemainingColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("entries", total=limit)
+    async with session_factory() as session:
+        catalog = await fetch_catalog_stats(session, zim_path)
+    pending = catalog.wordlist_pending
+    batch_total = CatalogJobProgress.estimate_batch_count(pending, limit)
 
-        def on_progress(done: int, total: int) -> None:
-            progress.update(task, total=total, completed=done)
+    with CatalogJobProgress(console, "Extract wordlist") as job:
+        job.start_batch(
+            batch_index=1,
+            batch_total=batch_total,
+            item_total=min(limit, max(1, pending)),
+            corpus_pending=pending,
+        )
+
+        def on_progress(tick: ProgressTick) -> None:
+            job.on_tick(tick)
 
         async with session_factory() as session:
             result = await extract_pending_wordlist(
@@ -242,9 +259,17 @@ async def _run_extract(zim_path: Path, limit: int) -> None:
                 progress=on_progress,
             )
 
+        job.finish_batch(
+            attempted=result.attempted,
+            extracted=result.extracted,
+            skipped=result.skipped,
+            failed=result.failed,
+        )
+
     console.print(
         f"[green]Batch complete[/green]: attempted={result.attempted} "
-        f"extracted={result.extracted} skipped={result.skipped} failed={result.failed}"
+        f"extracted={result.extracted} skipped={result.skipped} failed={result.failed} "
+        f"(corpus pending was {pending:,})"
     )
     await dispose_engine()
 
@@ -260,25 +285,36 @@ async def _run_extract_canonical(
     init_engine(settings.database_url)
     session_factory = get_session_factory()
 
+    async with session_factory() as session:
+        initial = await fetch_canonical_stats(session, configured_zim_count=len(zim_paths))
+    pending_start = initial.pending
+    batch_total = (
+        CatalogJobProgress.estimate_batch_count(pending_start, limit) if run_all else 1
+    )
+
     batch_index = 0
-    totals = {"attempted": 0, "extracted": 0, "skipped": 0, "failed": 0}
 
-    while True:
-        batch_index += 1
-        label = f"Extract canonical (batch {batch_index})"
-        with Progress(
-            TextColumn(f"[bold blue]{label}"),
-            BarColumn(),
-            TaskProgressColumn(),
-            TimeRemainingColumn(),
-            console=console,
-        ) as progress:
-            task_id: TaskID = progress.add_task("entries", total=limit)
-
-            def on_progress(done: int, total: int, *, _task_id: TaskID = task_id) -> None:
-                progress.update(_task_id, total=total, completed=done)
-
+    with CatalogJobProgress(console, "Extract canonical") as job:
+        while True:
+            batch_index += 1
             async with session_factory() as session:
+                corpus = await fetch_canonical_stats(
+                    session,
+                    configured_zim_count=len(zim_paths),
+                )
+                pending_now = corpus.pending
+                item_total = min(limit, max(1, pending_now)) if pending_now else limit
+
+                job.start_batch(
+                    batch_index=batch_index,
+                    batch_total=batch_total if run_all else 1,
+                    item_total=item_total,
+                    corpus_pending=pending_now,
+                )
+
+                def on_progress(tick: ProgressTick) -> None:
+                    job.on_tick(tick)
+
                 result = await extract_pending_canonical(
                     session,
                     zim_paths,
@@ -286,22 +322,35 @@ async def _run_extract_canonical(
                     progress=on_progress,
                 )
 
+            job.finish_batch(
+                attempted=result.attempted,
+                extracted=result.extracted,
+                skipped=result.skipped,
+                failed=result.failed,
+            )
+
+            if not run_all or result.attempted == 0:
+                break
+
+            if run_all and pending_start:
+                done = job.run_totals.attempted
+                remaining = max(0, pending_start - done)
+                batch_total = CatalogJobProgress.estimate_batch_count(remaining, limit)
+
+    totals = job.run_totals
+    if run_all:
         console.print(
-            f"[green]Batch {batch_index}[/green]: attempted={result.attempted} "
-            f"extracted={result.extracted} skipped={result.skipped} failed={result.failed}"
+            "[bold green]Run complete[/bold green]: "
+            f"batches={totals.batches} items={totals.attempted:,} "
+            f"extracted={totals.extracted:,} skipped={totals.skipped:,} "
+            f"failed={totals.failed:,} "
+            f"(started with {pending_start:,} pending)"
         )
-        for key in totals:
-            totals[key] += getattr(result, key)
-
-        if not run_all or result.attempted == 0:
-            break
-
-    if run_all and batch_index > 1:
+    else:
         console.print(
-            "[bold green]Full run complete[/bold green]: "
-            f"batches={batch_index} attempted={totals['attempted']} "
-            f"extracted={totals['extracted']} skipped={totals['skipped']} "
-            f"failed={totals['failed']}"
+            f"[green]Batch 1/{batch_total}[/green]: attempted={totals.attempted} "
+            f"extracted={totals.extracted} skipped={totals.skipped} failed={totals.failed} "
+            f"(corpus pending {pending_start:,})"
         )
 
     await dispose_engine()

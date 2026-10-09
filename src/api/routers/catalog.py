@@ -24,6 +24,7 @@ from src.api.schemas_mdx import JobCreatedResponse
 from src.catalog.audit import audit_canonical_extraction
 from src.catalog.canonical_extract import extract_pending_canonical
 from src.catalog.canonical_sync import sync_canonical_wordlist
+from src.catalog.cli_progress import ProgressTick
 from src.catalog.extract import extract_pending_wordlist
 from src.catalog.stats import fetch_canonical_stats, fetch_catalog_stats, scan_all_zim_stats
 from src.catalog.sync import sync_wordlist_to_sql
@@ -102,8 +103,12 @@ async def catalog_sync_wordlist_async(
         init_engine(settings.database_url)
         job_record.progress = {"phase": "scanning_zim"}
 
-        def on_progress(done: int, total: int) -> None:
-            job_record.progress = {"phase": "syncing", "done": done, "total": total}
+        def on_progress(tick: ProgressTick) -> None:
+            job_record.progress = {
+                "phase": "syncing",
+                "done": tick.done,
+                "total": tick.total,
+            }
 
         async with get_session_factory()() as session:
             result = await sync_wordlist_to_sql(
@@ -147,8 +152,15 @@ async def catalog_extract_async(
         init_engine(settings.database_url)
         job_record.progress = {"phase": "extracting", "limit": body.limit}
 
-        def on_progress(done: int, total: int) -> None:
-            job_record.progress = {"phase": "extracting", "done": done, "total": total}
+        def on_progress(tick: ProgressTick) -> None:
+            job_record.progress = {
+                "phase": "extracting",
+                "done": tick.done,
+                "total": tick.total,
+                "extracted": tick.extracted,
+                "skipped": tick.skipped,
+                "failed": tick.failed,
+            }
 
         async with get_session_factory()() as session:
             result = await extract_pending_wordlist(
@@ -245,8 +257,12 @@ async def catalog_canonical_sync_async(
         init_engine(settings.database_url)
         job_record.progress = {"phase": "scanning_zims", "count": len(zim_paths)}
 
-        def on_progress(done: int, total: int) -> None:
-            job_record.progress = {"phase": "upserting", "done": done, "total": total}
+        def on_progress(tick: ProgressTick) -> None:
+            job_record.progress = {
+                "phase": "upserting",
+                "done": tick.done,
+                "total": tick.total,
+            }
 
         async with get_session_factory()() as session:
             result = await sync_canonical_wordlist(
@@ -299,8 +315,15 @@ async def catalog_canonical_extract_async(
         init_engine(settings.database_url)
         job_record.progress = {"phase": "extracting", "limit": body.limit}
 
-        def on_progress(done: int, total: int) -> None:
-            job_record.progress = {"phase": "extracting", "done": done, "total": total}
+        def on_progress(tick: ProgressTick) -> None:
+            job_record.progress = {
+                "phase": "extracting",
+                "done": tick.done,
+                "total": tick.total,
+                "extracted": tick.extracted,
+                "skipped": tick.skipped,
+                "failed": tick.failed,
+            }
 
         async with get_session_factory()() as session:
             result = await extract_pending_canonical(

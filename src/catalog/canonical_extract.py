@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.catalog.cli_progress import ProgressTick
 from src.catalog.zim_paths import sort_zim_paths_for_extract
 from src.core.models import WiktionaryEntry
 from src.extraction.parse_page import ParsedPage, parse_wiktionary_page
@@ -146,7 +147,7 @@ async def extract_pending_canonical(
     zim_paths: list[Path],
     *,
     limit: int = 100,
-    progress: Callable[[int, int], None] | None = None,
+    progress: Callable[[ProgressTick], None] | None = None,
 ) -> CanonicalExtractBatchResult:
     stmt = (
         select(CanonicalLemmaModel)
@@ -199,7 +200,15 @@ async def extract_pending_canonical(
             extracted += 1
         await session.commit()
         if progress is not None:
-            progress(index, total)
+            progress(
+                ProgressTick(
+                    done=index,
+                    total=total,
+                    extracted=extracted,
+                    skipped=skipped,
+                    failed=failed,
+                )
+            )
 
     return CanonicalExtractBatchResult(
         attempted=total,

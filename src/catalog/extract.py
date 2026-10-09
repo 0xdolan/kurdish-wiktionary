@@ -7,6 +7,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.catalog.cli_progress import ProgressTick
 from src.core.models import WiktionaryEntry
 from src.extraction.html_parser import parse_wiktionary_html
 from src.extraction.zim_reader import ZimReader
@@ -56,7 +57,7 @@ async def extract_pending_wordlist(
     zim_path: Path,
     *,
     limit: int = 100,
-    progress: Callable[[int, int], None] | None = None,
+    progress: Callable[[ProgressTick], None] | None = None,
 ) -> ExtractBatchResult:
     stmt = (
         select(WordlistTitleModel)
@@ -89,7 +90,15 @@ async def extract_pending_wordlist(
             extracted += 1
         await session.commit()
         if progress is not None:
-            progress(index, total)
+            progress(
+                ProgressTick(
+                    done=index,
+                    total=total,
+                    extracted=extracted,
+                    skipped=skipped,
+                    failed=failed,
+                )
+            )
 
     return ExtractBatchResult(
         attempted=total,

@@ -6,6 +6,7 @@ from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.catalog.cli_progress import ProgressTick
 from src.extraction.normalize import normalize_entry_key
 from src.extraction.zim_reader import ZimReader
 from src.repository.db.models import WordlistExtractStatus, WordlistTitleModel
@@ -41,7 +42,7 @@ async def sync_wordlist_to_sql(
     zim_path: Path,
     *,
     batch_size: int = 2000,
-    progress: Callable[[int, int], None] | None = None,
+    progress: Callable[[ProgressTick], None] | None = None,
 ) -> WordlistSyncResult:
     from sqlalchemy import func, select
 
@@ -57,7 +58,8 @@ async def sync_wordlist_to_sql(
         await session.execute(stmt)
         await session.commit()
         if progress is not None:
-            progress(min(offset + len(chunk), scanned), scanned)
+            done = min(offset + len(chunk), scanned)
+            progress(ProgressTick(done=done, total=scanned))
     after = int(
         (await session.execute(select(func.count()).select_from(WordlistTitleModel))).scalar_one()
     )
