@@ -46,6 +46,15 @@ uv run pytest
 
 Copy [`.env.example`](.env.example) to `.env` to override `ZIM_PATH`, database URL, and related settings.
 
+### PostgreSQL ingest (Phase 3+)
+
+```bash
+docker compose up -d postgres
+uv run alembic upgrade head
+uv run python -m src.extraction --zim-path zim/wiktionary/wiktionary_ku_all_nopic_2026-06.zim --ingest --max-entries 500
+curl -s -H 'X-Data-Source: sql' http://127.0.0.1:8000/words/heval | jq .
+```
+
 ## Status
 
 **Phase 0** (foundation) complete when verification above passes — see [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).

@@ -1,3 +1,5 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.config import DataSource, Settings
 from src.repository.protocol import WiktionaryRepositoryProto
 from src.repository.sql_repository import SqlRepository
@@ -12,8 +14,12 @@ def build_repository(
     settings: Settings,
     *,
     source_override: DataSource | None = None,
+    session: AsyncSession | None = None,
 ) -> WiktionaryRepositoryProto:
     source = resolve_data_source(settings, source_override)
     if source is DataSource.ZIM:
         return ZimRepository(settings.zim_path)
-    return SqlRepository(settings.database_url, enabled=False)
+    if session is None:
+        msg = "SQL data source requires an active database session."
+        raise RuntimeError(msg)
+    return SqlRepository(session)

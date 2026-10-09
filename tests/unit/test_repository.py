@@ -1,8 +1,9 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.config import DataSource
-from src.core.exceptions import DatabaseError, NotFoundError
+from src.core.exceptions import NotFoundError
 from src.core.models import WiktionaryEntry
 from src.core.services.wiktionary_service import WiktionaryService
 from src.repository.factory import build_repository, resolve_data_source
@@ -44,10 +45,21 @@ def test_build_repository_zim() -> None:
     assert repo.source is DataSource.ZIM
 
 
+def test_build_repository_sql_requires_session() -> None:
+    from src.config import Settings
+
+    settings = Settings(default_data_source=DataSource.SQL)
+    with pytest.raises(RuntimeError):
+        build_repository(settings)
+
+
 @pytest.mark.asyncio
-async def test_sql_repository_not_enabled() -> None:
-    repo = SqlRepository("postgresql+asyncpg://localhost/test", enabled=False)
+async def test_sql_repository_health_and_get() -> None:
+    session = AsyncMock(spec=AsyncSession)
+    result_mock = MagicMock()
+    result_mock.scalar_one_or_none.return_value = None
+    session.execute = AsyncMock(return_value=result_mock)
+    repo = SqlRepository(session)
     health = await repo.health_detail()
-    assert health.ready is False
-    with pytest.raises(DatabaseError):
-        await repo.get_entry("heval")
+    assert health.ready is True
+    assert await repo.get_entry("heval") is None

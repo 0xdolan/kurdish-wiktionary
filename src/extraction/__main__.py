@@ -5,7 +5,8 @@ from pathlib import Path
 
 from src.config import get_settings
 from src.core.logging import configure_logging, get_logger
-from src.extraction.pipeline import run_extraction_pipeline
+from src.extraction.pipeline import ingest_zim_to_session, run_extraction_pipeline
+from src.repository.db.base import dispose_engine, get_session_factory, init_engine
 
 logger = get_logger("uvicorn.error")
 
@@ -32,6 +33,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Parse and print stats without writing to a database",
     )
     parser.add_argument(
+        "--ingest",
+        action="store_true",
+        help="Upsert parsed entries into PostgreSQL (requires migrations)",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=200,
+        help="Database upsert batch size when using --ingest",
+    )
+    parser.add_argument(
         "--sample-json",
         type=int,
         default=0,
@@ -47,6 +59,36 @@ async def async_main(args: argparse.Namespace) -> int:
     if not zim_path.is_file():
         logger.error("ZIM file not found: %s", zim_path)
         return 1
+
+    if args.ingest and not args.dry_run:
+        init_engine(settings.database_url)
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            ingest_stats = await ingest_zim_to_session(
+                zim_path,
+                session,
+                max_entries=args.max_entries,
+                batch_size=args.batch_size,
+            )
+        await dispose_engine()
+        logger.info(
+            "Ingest complete: processed=%s skipped=%s failed=%s",
+            ingest_stats.processed,
+            ingest_stats.skipped,
+            ingest_stats.failed,
+        )
+        print(
+            json.dumps(
+                {
+                    "processed": ingest_stats.processed,
+                    "skipped": ingest_stats.skipped,
+                    "failed": ingest_stats.failed,
+                    "zim_path": str(zim_path.resolve()),
+                    "ingest": True,
+                }
+            )
+        )
+        return 0
 
     result = await run_extraction_pipeline(zim_path, max_entries=args.max_entries)
     stats = result.stats

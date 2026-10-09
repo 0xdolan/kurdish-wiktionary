@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from src.api.deps import DataSourceOverrideDep, SettingsDep
+from src.api.deps import DataSourceOverrideDep, DbSessionDep, SettingsDep
 from src.api.schemas import WordListResponse
 from src.core.models import WiktionaryEntry
 from src.core.services.wiktionary_service import WiktionaryService
@@ -14,8 +14,13 @@ router = APIRouter(prefix="/words", tags=["words"])
 def get_wiktionary_service(
     settings: SettingsDep,
     source_override: DataSourceOverrideDep,
+    session: DbSessionDep,
 ) -> WiktionaryService:
-    repository = build_repository(settings, source_override=source_override)
+    repository = build_repository(
+        settings,
+        source_override=source_override,
+        session=session,
+    )
     return WiktionaryService(repository)
 
 

@@ -12,8 +12,8 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 
 | Field | Value |
 |-------|--------|
-| **Current phase** | Phase 3 — ready to start |
-| **Last completed task** | 2.6 |
+| **Current phase** | Phase 4 — ready to start |
+| **Last completed task** | 3.7 |
 | **Blockers** | None recorded |
 | **Branch / commit** | feat/phase-1-extraction (local) |
 
@@ -24,7 +24,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 | 0 | Foundation & tooling | ✅ Done | ✅ |
 | 1 | ZIM extraction & schema | ✅ Done | ✅ |
 | 2 | Hybrid repository layer | ✅ Done | ✅ |
-| 3 | PostgreSQL schema & migrations | ⬜ Not started | ⬜ |
+| 3 | PostgreSQL schema & migrations | ✅ Done | ✅ |
 | 4 | FastAPI service | ⬜ Not started | ⬜ |
 | 5 | Tests, CI, hardening | ⬜ Not started | ⬜ |
 | 6 | Documentation & ops runbook | ⬜ Not started | ⬜ |
@@ -146,13 +146,13 @@ uv run pytest tests/unit/test_repository.py tests/unit/test_zim_repository.py -v
 
 ### Tasks
 
-- [ ] **3.1** `src/repository/db/base.py` — async engine, session factory, lifespan helper.
-- [ ] **3.2** SQLAlchemy 2.0 models under `src/repository/db/models/`.
-- [ ] **3.3** Alembic `migrations/env.py` (async); initial revision creating all tables + indexes.
-- [ ] **3.4** Optional migration enabling `pg_trgm` + GIN index (document if extension required).
-- [ ] **3.5** `src/repository/db/upsert.py` — transactional upsert: parent + replace children.
-- [ ] **3.6** Wire **1.6** pipeline to upsert (worker path).
-- [ ] **3.7** Complete **2.3** `SqlRepository` implementations.
+- [x] **3.1** `src/repository/db/base.py` — async engine, session factory, lifespan helper.
+- [x] **3.2** SQLAlchemy 2.0 models under `src/repository/db/models/`.
+- [x] **3.3** Alembic `migrations/env.py` (async); initial revision creating all tables + indexes.
+- [x] **3.4** Optional migration enabling `pg_trgm` + GIN index (document if extension required).
+- [x] **3.5** `src/repository/db/upsert.py` — transactional upsert: parent + replace children.
+- [x] **3.6** Wire **1.6** pipeline to upsert (worker path).
+- [x] **3.7** Complete **2.3** `SqlRepository` implementations.
 
 ### Deliverables
 

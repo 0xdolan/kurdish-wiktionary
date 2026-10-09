@@ -1,7 +1,9 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
 from pathlib import Path
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.logging import get_logger
 from src.core.models import WiktionaryEntry
@@ -24,10 +26,10 @@ class PipelineResult:
     entries: list[WiktionaryEntry]
 
 
-def _process_zim_sync(
+def _iter_parsed_sync(
     zim_path: Path,
     max_entries: int | None,
-) -> PipelineResult:
+) -> tuple[Iterator[WiktionaryEntry], PipelineStats]:
     reader = ZimReader(zim_path)
     meta = reader.metadata()
     metadata_base = {
@@ -37,26 +39,36 @@ def _process_zim_sync(
         "zim_path": str(meta.path),
     }
     stats = PipelineStats()
-    entries: list[WiktionaryEntry] = []
 
-    for article in reader.iter_articles():
-        if max_entries is not None and stats.processed >= max_entries:
-            break
-        try:
-            parsed = parse_wiktionary_html(
-                article.title,
-                article.html,
-                metadata_base=dict(metadata_base),
-            )
-            if not parsed.definitions and not parsed.phonetic_transcriptions:
-                stats.skipped += 1
-                continue
-            entries.append(parsed)
-            stats.processed += 1
-        except Exception:
-            stats.failed += 1
-            logger.exception("Failed to parse article %s", article.title)
+    def generator() -> Iterator[WiktionaryEntry]:
+        nonlocal stats
+        for article in reader.iter_articles():
+            if max_entries is not None and stats.processed >= max_entries:
+                break
+            try:
+                parsed = parse_wiktionary_html(
+                    article.title,
+                    article.html,
+                    metadata_base=dict(metadata_base),
+                )
+                if not parsed.definitions and not parsed.phonetic_transcriptions:
+                    stats.skipped += 1
+                    continue
+                stats.processed += 1
+                yield parsed
+            except Exception:
+                stats.failed += 1
+                logger.exception("Failed to parse article %s", article.title)
 
+    return generator(), stats
+
+
+def _process_zim_sync(
+    zim_path: Path,
+    max_entries: int | None,
+) -> PipelineResult:
+    generator, stats = _iter_parsed_sync(zim_path, max_entries)
+    entries = list(generator)
     return PipelineResult(stats=stats, entries=entries)
 
 
@@ -73,6 +85,31 @@ async def iter_entries(
     *,
     max_entries: int | None = None,
 ) -> AsyncIterator[WiktionaryEntry]:
-    result = await run_extraction_pipeline(zim_path, max_entries=max_entries)
-    for entry in result.entries:
+    generator, _stats = await asyncio.to_thread(_iter_parsed_sync, zim_path, max_entries)
+    for entry in generator:
         yield entry
+
+
+async def ingest_zim_to_session(
+    zim_path: Path,
+    session: AsyncSession,
+    *,
+    max_entries: int | None = None,
+    batch_size: int = 200,
+) -> PipelineStats:
+    from src.repository.db.upsert import upsert_entry
+
+    generator, stats = await asyncio.to_thread(_iter_parsed_sync, zim_path, max_entries)
+    batch: list[WiktionaryEntry] = []
+    for entry in generator:
+        batch.append(entry)
+        if len(batch) >= batch_size:
+            for item in batch:
+                await upsert_entry(session, item)
+            await session.commit()
+            batch.clear()
+    if batch:
+        for item in batch:
+            await upsert_entry(session, item)
+        await session.commit()
+    return stats

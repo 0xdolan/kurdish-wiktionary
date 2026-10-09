@@ -26,6 +26,7 @@ dev = [
     "pytest>=8.3",
     "ruff>=0.8",
     "testcontainers>=4.9",
+    "aiosqlite>=0.20",
 ]
 
 [build-system]
@@ -43,6 +44,7 @@ dev = [
     "pytest>=8.3",
     "ruff>=0.8",
     "testcontainers>=4.9",
+    "aiosqlite>=0.20",
 ]
 
 [tool.uv]
