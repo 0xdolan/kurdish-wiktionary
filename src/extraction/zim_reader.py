@@ -1,0 +1,66 @@
+from collections.abc import Iterator
+from dataclasses import dataclass
+from pathlib import Path
+
+import libzim
+
+from src.extraction.normalize import is_wiktionary_article_title
+
+
+@dataclass(frozen=True, slots=True)
+class ZimArticle:
+    title: str
+    path: str
+    html: str
+
+
+@dataclass(frozen=True, slots=True)
+class ZimMetadata:
+    uuid: str
+    date: str | None
+    source: str | None
+    title: str | None
+    path: Path
+
+
+class ZimReader:
+    def __init__(self, zim_path: Path) -> None:
+        self._path = zim_path
+        self._archive = libzim.Archive(str(zim_path))
+
+    @property
+    def path(self) -> Path:
+        return self._path
+
+    def metadata(self) -> ZimMetadata:
+        def meta_text(key: str) -> str | None:
+            if key not in self._archive.metadata_keys:
+                return None
+            raw = self._archive.get_metadata(key)
+            return raw.decode("utf-8", errors="replace") if raw else None
+
+        return ZimMetadata(
+            uuid=str(self._archive.uuid),
+            date=meta_text("Date"),
+            source=meta_text("Source"),
+            title=meta_text("Title"),
+            path=self._path,
+        )
+
+    def iter_articles(self) -> Iterator[ZimArticle]:
+        total = self._archive.all_entry_count
+        for entry_id in range(total):
+            entry = self._archive._get_entry_by_id(entry_id)
+            if entry.is_redirect:
+                continue
+            title = entry.title
+            if not is_wiktionary_article_title(title):
+                continue
+            try:
+                item = entry.get_item()
+            except RuntimeError:
+                continue
+            if item.mimetype != "text/html":
+                continue
+            html = item.content.tobytes().decode("utf-8", errors="replace")
+            yield ZimArticle(title=title, path=entry.path, html=html)

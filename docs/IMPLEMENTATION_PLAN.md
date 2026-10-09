@@ -12,17 +12,17 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 
 | Field | Value |
 |-------|--------|
-| **Current phase** | Phase 1 — ready to start |
-| **Last completed task** | 0.8 |
+| **Current phase** | Phase 2 — ready to start |
+| **Last completed task** | 1.8 |
 | **Blockers** | None recorded |
-| **Branch / commit** | master (Phase 0 local) |
+| **Branch / commit** | feat/phase-1-extraction (local) |
 
 ### Phase status overview
 
 | Phase | Name | Status | Exit criteria met? |
 |-------|------|--------|--------------------|
 | 0 | Foundation & tooling | ✅ Done | ✅ |
-| 1 | ZIM extraction & schema | ⬜ Not started | ⬜ |
+| 1 | ZIM extraction & schema | ✅ Done | ✅ |
 | 2 | Hybrid repository layer | ⬜ Not started | ⬜ |
 | 3 | PostgreSQL schema & migrations | ⬜ Not started | ⬜ |
 | 4 | FastAPI service | ⬜ Not started | ⬜ |
@@ -85,14 +85,14 @@ uv run pytest   # may be empty suite initially
 
 ### Tasks
 
-- [ ] **1.1** `src/core/models.py` — Pydantic `WiktionaryEntry` + validators (normalize lists, metadata defaults).
-- [ ] **1.2** **Corpus analysis:** Sample 20–50 pages from local `zim/wiktionary_ku_all_nopic_2026-06.zim` (or latest nopic); document HTML patterns in `docs/HTML_LAYOUT_NOTES.md`.
-- [ ] **1.3** `src/extraction/zim_reader.py` — wrap libzim (thread offload): metadata, iterate paths/titles, fetch HTML bytes.
-- [ ] **1.4** `src/extraction/html_parser.py` — structural parser; `layout_version` in metadata; null-safe fields.
-- [ ] **1.5** `src/extraction/normalize.py` — title/lemma normalization for keys.
-- [ ] **1.6** `src/extraction/pipeline.py` — async batch orchestrator (read → parse → yield models).
-- [ ] **1.7** CLI `src/extraction/__main__.py` or `wiktionary-ingest` script: `--zim-path`, logging, progress counters.
-- [ ] **1.8** Unit tests: HTML fixtures (minimal, messy, empty sections) in `tests/unit/test_html_parser.py`.
+- [x] **1.1** `src/core/models.py` — Pydantic `WiktionaryEntry` + validators (normalize lists, metadata defaults).
+- [x] **1.2** **Corpus analysis:** Sample 20–50 pages from local `zim/wiktionary_ku_all_nopic_2026-06.zim` (or latest nopic); document HTML patterns in `docs/HTML_LAYOUT_NOTES.md`.
+- [x] **1.3** `src/extraction/zim_reader.py` — wrap libzim (thread offload): metadata, iterate paths/titles, fetch HTML bytes.
+- [x] **1.4** `src/extraction/html_parser.py` — structural parser; `layout_version` in metadata; null-safe fields.
+- [x] **1.5** `src/extraction/normalize.py` — title/lemma normalization for keys.
+- [x] **1.6** `src/extraction/pipeline.py` — async batch orchestrator (read → parse → yield models).
+- [x] **1.7** CLI `src/extraction/__main__.py` or `wiktionary-ingest` script: `--zim-path`, logging, progress counters.
+- [x] **1.8** Unit tests: HTML fixtures (minimal, messy, empty sections) in `tests/unit/test_html_parser.py`.
 
 ### Deliverables
 
