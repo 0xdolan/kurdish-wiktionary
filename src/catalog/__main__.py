@@ -3,7 +3,14 @@ import asyncio
 from pathlib import Path
 
 from rich.console import Console
-from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeRemainingColumn
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TaskID,
+    TaskProgressColumn,
+    TextColumn,
+    TimeRemainingColumn,
+)
 from rich.table import Table
 
 from src.catalog.audit import audit_canonical_extraction
@@ -54,7 +61,17 @@ def build_parser() -> argparse.ArgumentParser:
         "extract-canonical",
         help="For each canonical lemma, parse HTML from every available ZIM and merge",
     )
-    canon_ext.add_argument("--limit", type=int, default=100)
+    canon_ext.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Batch size (max rows per invocation; use 5000–10000 for throughput)",
+    )
+    canon_ext.add_argument(
+        "--all",
+        action="store_true",
+        help="Repeat batches until every pending canonical lemma is processed",
+    )
     canon_ext.add_argument(
         "--zim-path",
         type=Path,
@@ -232,36 +249,61 @@ async def _run_extract(zim_path: Path, limit: int) -> None:
     await dispose_engine()
 
 
-async def _run_extract_canonical(zim_paths: list[Path], limit: int) -> None:
+async def _run_extract_canonical(
+    zim_paths: list[Path],
+    limit: int,
+    *,
+    run_all: bool = False,
+) -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
     init_engine(settings.database_url)
     session_factory = get_session_factory()
 
-    with Progress(
-        TextColumn("[bold blue]Extract canonical"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeRemainingColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("entries", total=limit)
+    batch_index = 0
+    totals = {"attempted": 0, "extracted": 0, "skipped": 0, "failed": 0}
 
-        def on_progress(done: int, total: int) -> None:
-            progress.update(task, total=total, completed=done)
+    while True:
+        batch_index += 1
+        label = f"Extract canonical (batch {batch_index})"
+        with Progress(
+            TextColumn(f"[bold blue]{label}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            console=console,
+        ) as progress:
+            task_id: TaskID = progress.add_task("entries", total=limit)
 
-        async with session_factory() as session:
-            result = await extract_pending_canonical(
-                session,
-                zim_paths,
-                limit=limit,
-                progress=on_progress,
-            )
+            def on_progress(done: int, total: int, *, _task_id: TaskID = task_id) -> None:
+                progress.update(_task_id, total=total, completed=done)
 
-    console.print(
-        f"[green]Batch complete[/green]: attempted={result.attempted} "
-        f"extracted={result.extracted} skipped={result.skipped} failed={result.failed}"
-    )
+            async with session_factory() as session:
+                result = await extract_pending_canonical(
+                    session,
+                    zim_paths,
+                    limit=limit,
+                    progress=on_progress,
+                )
+
+        console.print(
+            f"[green]Batch {batch_index}[/green]: attempted={result.attempted} "
+            f"extracted={result.extracted} skipped={result.skipped} failed={result.failed}"
+        )
+        for key in totals:
+            totals[key] += getattr(result, key)
+
+        if not run_all or result.attempted == 0:
+            break
+
+    if run_all and batch_index > 1:
+        console.print(
+            "[bold green]Full run complete[/bold green]: "
+            f"batches={batch_index} attempted={totals['attempted']} "
+            f"extracted={totals['extracted']} skipped={totals['skipped']} "
+            f"failed={totals['failed']}"
+        )
+
     await dispose_engine()
 
 
@@ -283,7 +325,7 @@ async def async_main(args: argparse.Namespace) -> int:
         await _run_extract(path, args.limit)
     elif args.command == "extract-canonical":
         paths = resolve_zim_paths(settings, args.zim_path)
-        await _run_extract_canonical(paths, args.limit)
+        await _run_extract_canonical(paths, args.limit, run_all=args.all)
     return 0
 
 

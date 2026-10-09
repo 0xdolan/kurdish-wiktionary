@@ -17,7 +17,11 @@ docker compose --profile catalog run --rm --build catalog sync-canonical
 docker compose --profile catalog run --rm --build catalog stats
 
 # 4. Extract batch: HTML from each ZIM → merge → entries (UTF-8 plain text)
-docker compose --profile catalog run --rm catalog extract-canonical --limit 5000
+docker compose --profile catalog run --rm --build catalog extract-canonical --limit 5000
+
+# 4b. Extract **entire** canonical wordlist (~1M lemmas; many hours — use tmux/screen)
+docker compose --profile catalog run --rm --build catalog \
+  extract-canonical --all --limit 10000
 
 # 5. Audit: extracted vs entry_id, HTML entity spot-check on definitions
 docker compose --profile catalog run --rm catalog audit

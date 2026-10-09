@@ -56,7 +56,31 @@ ORDER BY c.extracted_at DESC NULLS LAST
 LIMIT 50;
 ```
 
-## 4. Local `uv` / Alembic on the host
+## 4. Search and browse extracted entries
+
+In **SQL Editor**:
+
+```sql
+-- Progress
+SELECT extract_status, COUNT(*) FROM canonical_lemmas GROUP BY 1 ORDER BY 1;
+
+-- Search lemmas (prefix)
+SELECT title, extract_status, entry_id
+FROM canonical_lemmas
+WHERE title ILIKE 'hev%'
+ORDER BY title
+LIMIT 50;
+
+-- Full plain-text row for one lemma
+SELECT e.entry, e.metadata,
+       (SELECT json_agg(d.value ORDER BY d.ordinal) FROM entry_definitions d WHERE d.entry_id = e.id) AS definitions
+FROM entries e
+WHERE e.entry ILIKE 'heval';
+```
+
+API (after extract): `GET /words/{lemma}` with default SQL source, or list `GET /words?limit=50&offset=0`.
+
+## 5. Local `uv` / Alembic on the host
 
 Point `.env` at the same URL as `.env.example`:
 
