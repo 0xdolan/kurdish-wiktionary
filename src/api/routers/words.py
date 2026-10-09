@@ -2,11 +2,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from src.api.deps import DataSourceOverrideDep, DbSessionDep, SettingsDep
+from src.api.deps import AppStateDep, DataSourceOverrideDep, DbSessionDep, SettingsDep
 from src.api.schemas import WordListResponse
+from src.config import DataSource
 from src.core.models import WiktionaryEntry
 from src.core.services.wiktionary_service import WiktionaryService
-from src.repository.factory import build_repository
+from src.repository.factory import build_repository, resolve_data_source
+from src.repository.protocol import WiktionaryRepositoryProto
+from src.repository.zim_repository import ZimRepository
 
 router = APIRouter(prefix="/words", tags=["words"])
 
@@ -15,12 +18,21 @@ def get_wiktionary_service(
     settings: SettingsDep,
     source_override: DataSourceOverrideDep,
     session: DbSessionDep,
+    app_state: AppStateDep,
 ) -> WiktionaryService:
-    repository = build_repository(
-        settings,
-        source_override=source_override,
-        session=session,
-    )
+    source = resolve_data_source(settings, source_override)
+    repository: WiktionaryRepositoryProto
+    if source is DataSource.ZIM:
+        repository = ZimRepository(
+            settings.zim_path,
+            reader=app_state.zim_reader,
+        )
+    else:
+        repository = build_repository(
+            settings,
+            source_override=source_override,
+            session=session,
+        )
     return WiktionaryService(repository)
 
 

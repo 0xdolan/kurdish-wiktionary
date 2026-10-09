@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.api.app import create_app
 from src.config import get_settings
 from src.repository.db.base import get_db_session

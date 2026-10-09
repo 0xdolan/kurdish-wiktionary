@@ -2,10 +2,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, Header
+from fastapi import Depends, FastAPI, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.state import AppState
 from src.config import DataSource, Settings, get_settings
+from src.extraction.zim_reader import ZimReader
 from src.repository.db.base import dispose_engine, get_db_session, init_engine
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -29,10 +31,22 @@ DataSourceOverrideDep = Annotated[DataSource | None, Depends(get_data_source_ove
 DbSessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 
 
+def get_app_state(request: Request) -> AppState:
+    return getattr(request.app.state, "wiktionary", AppState())
+
+
+AppStateDep = Annotated[AppState, Depends(get_app_state)]
+
+
 @asynccontextmanager
-async def lifespan_context(settings: Settings) -> AsyncIterator[None]:
+async def lifespan_context(app: FastAPI, settings: Settings) -> AsyncIterator[None]:
     init_engine(settings.database_url)
+    zim_reader: ZimReader | None = None
+    if settings.zim_path.is_file():
+        zim_reader = ZimReader(settings.zim_path)
+    app.state.wiktionary = AppState(zim_reader=zim_reader)
     try:
         yield
     finally:
+        app.state.wiktionary = AppState()
         await dispose_engine()

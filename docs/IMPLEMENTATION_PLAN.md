@@ -12,8 +12,8 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 
 | Field | Value |
 |-------|--------|
-| **Current phase** | Phase 4 — ready to start |
-| **Last completed task** | 3.7 |
+| **Current phase** | Phase 5 — ready to start |
+| **Last completed task** | 4.8 |
 | **Blockers** | None recorded |
 | **Branch / commit** | feat/phase-1-extraction (local) |
 
@@ -25,7 +25,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 | 1 | ZIM extraction & schema | ✅ Done | ✅ |
 | 2 | Hybrid repository layer | ✅ Done | ✅ |
 | 3 | PostgreSQL schema & migrations | ✅ Done | ✅ |
-| 4 | FastAPI service | ⬜ Not started | ⬜ |
+| 4 | FastAPI service | ✅ Done | ✅ |
 | 5 | Tests, CI, hardening | ⬜ Not started | ⬜ |
 | 6 | Documentation & ops runbook | ⬜ Not started | ⬜ |
 | 7 | MDX/MDD export (mdict-utils) | ⬜ Not started | ⬜ |
@@ -178,14 +178,14 @@ uv run pytest tests/integration/test_upsert.py -v
 
 ### Tasks
 
-- [ ] **4.1** `src/api/schemas.py` — response DTOs mirroring `WiktionaryEntry`.
-- [ ] **4.2** `src/api/deps.py` — settings, repo factory, `X-Data-Source` dependency.
-- [ ] **4.3** `src/api/routers/health.py` — ZIM readable + DB ping.
-- [ ] **4.4** `src/api/routers/words.py` — list + get by word.
-- [ ] **4.5** CORS middleware from settings.
-- [ ] **4.6** Rate limiting middleware (in-memory v1; note Redis for multi-replica).
-- [ ] **4.7** Exception handlers → RFC 7807-style JSON.
-- [ ] **4.8** App lifespan: engine dispose, optional ZIM handle cache.
+- [x] **4.1** `src/api/schemas.py` — response DTOs mirroring `WiktionaryEntry`.
+- [x] **4.2** `src/api/deps.py` — settings, repo factory, `X-Data-Source` dependency.
+- [x] **4.3** `src/api/routers/health.py` — ZIM readable + DB ping.
+- [x] **4.4** `src/api/routers/words.py` — list + get by word.
+- [x] **4.5** CORS middleware from settings.
+- [x] **4.6** Rate limiting middleware (in-memory v1; note Redis for multi-replica).
+- [x] **4.7** Exception handlers → RFC 7807-style JSON.
+- [x] **4.8** App lifespan: engine dispose, optional ZIM handle cache.
 
 ### Deliverables
 

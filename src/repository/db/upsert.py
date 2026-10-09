@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.core.models import WiktionaryEntry
 from src.extraction.normalize import normalize_entry_key
 from src.repository.db.models import (
@@ -29,9 +30,11 @@ async def _replace_child_rows(
     row_cls: type[Any],
 ) -> None:
     await session.execute(delete(row_cls).where(row_cls.entry_id == entry_id))
-    session.add_all(
-        [row_cls(entry_id=entry_id, ordinal=index, value=value) for index, value in enumerate(values)]
-    )
+    rows = [
+        row_cls(entry_id=entry_id, ordinal=index, value=value)
+        for index, value in enumerate(values)
+    ]
+    session.add_all(rows)
 
 
 async def upsert_entry(session: AsyncSession, entry: WiktionaryEntry) -> EntryModel:

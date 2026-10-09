@@ -2,7 +2,6 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import selectinload
-
 from src.core.models import WiktionaryEntry
 from src.repository.db.models import Base, EntryModel
 from src.repository.db.upsert import upsert_entry
