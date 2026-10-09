@@ -86,5 +86,6 @@ source = ["src"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 0
+fail_under = 70
 show_missing = true
+omit = ["src/extraction/__main__.py"]

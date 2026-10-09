@@ -1,17 +1,26 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.app import create_app
-from src.config import get_settings
-from src.repository.db.base import get_db_session
+from src.config import Settings, get_settings
+from src.repository.db.base import dispose_engine, get_db_session
 
 
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"
+
+
+@pytest.fixture
+def test_settings(monkeypatch: pytest.MonkeyPatch) -> Iterator[Settings]:
+    monkeypatch.setenv("DEFAULT_DATA_SOURCE", "zim")
+    monkeypatch.setenv("RATE_LIMIT_RPM", "1000")
+    get_settings.cache_clear()
+    yield get_settings()
+    get_settings.cache_clear()
 
 
 async def _fake_db_session() -> AsyncGenerator[AsyncSession, None]:
@@ -25,12 +34,15 @@ async def _fake_db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest.fixture
-def app(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DEFAULT_DATA_SOURCE", "zim")
-    get_settings.cache_clear()
+async def app(test_settings: Settings, monkeypatch: pytest.MonkeyPatch):
+    _ = test_settings
+    await dispose_engine()
     application = create_app()
     application.dependency_overrides[get_db_session] = _fake_db_session
-    return application
+    async with application.router.lifespan_context(application):
+        yield application
+    application.dependency_overrides.clear()
+    await dispose_engine()
 
 
 @pytest.fixture

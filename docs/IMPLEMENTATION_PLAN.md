@@ -12,8 +12,8 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 
 | Field | Value |
 |-------|--------|
-| **Current phase** | Phase 5 — ready to start |
-| **Last completed task** | 4.8 |
+| **Current phase** | Phase 6 — ready to start |
+| **Last completed task** | 5.6 |
 | **Blockers** | None recorded |
 | **Branch / commit** | feat/phase-1-extraction (local) |
 
@@ -26,7 +26,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 | 2 | Hybrid repository layer | ✅ Done | ✅ |
 | 3 | PostgreSQL schema & migrations | ✅ Done | ✅ |
 | 4 | FastAPI service | ✅ Done | ✅ |
-| 5 | Tests, CI, hardening | ⬜ Not started | ⬜ |
+| 5 | Tests, CI, hardening | ✅ Done | ✅ |
 | 6 | Documentation & ops runbook | ⬜ Not started | ⬜ |
 | 7 | MDX/MDD export (mdict-utils) | ⬜ Not started | ⬜ |
 
@@ -210,12 +210,12 @@ curl -s -H 'X-Data-Source: sql' localhost:8000/words/heval | jq .
 
 ### Tasks
 
-- [ ] **5.1** `tests/conftest.py` — event loop, test settings, httpx client, db fixture.
-- [ ] **5.2** Integration: testcontainers Postgres + migrated schema.
-- [ ] **5.3** API integration tests for `/health`, `/words`, error cases.
-- [ ] **5.4** `pytest-cov` in `pyproject.toml`; CI threshold (start 70%, target 90%).
-- [ ] **5.5** `.github/workflows/ci.yml` — uv sync, ruff, mypy, pytest, docker build.
-- [ ] **5.6** Load smoke: document expected latency for ZIM vs SQL single-get.
+- [x] **5.1** `tests/conftest.py` — event loop, test settings, httpx client, db fixture.
+- [x] **5.2** Integration: testcontainers Postgres + migrated schema.
+- [x] **5.3** API integration tests for `/health`, `/words`, error cases.
+- [x] **5.4** `pytest-cov` in `pyproject.toml`; CI threshold (start 70%, target 90%).
+- [x] **5.5** `.github/workflows/ci.yml` — uv sync, ruff, mypy, pytest, docker build.
+- [x] **5.6** Load smoke: document expected latency for ZIM vs SQL single-get.
 
 ### Deliverables
 
@@ -237,7 +237,7 @@ uv run pytest --cov=src --cov-report=term-missing
 
 ### Tasks
 
-- [ ] **6.1** `docker/api.Dockerfile` — multi-stage, non-root user, uv install.
+- [x] **6.1** `docker/api.Dockerfile` — multi-stage, non-root user, uv install. *(landed in Phase 5 for CI)*
 - [ ] **6.2** `docker/worker.Dockerfile` — ingest job entrypoint.
 - [ ] **6.3** `docker-compose.yml` — postgres volume, ZIM bind mount `./zim`, env file template `.env.example`.
 - [ ] **6.4** README: quickstart, ingest, API examples, **MDX build link to [MDX_MDD_GUIDE.md](./MDX_MDD_GUIDE.md)**, troubleshooting.

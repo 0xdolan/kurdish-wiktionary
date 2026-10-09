@@ -10,6 +10,7 @@ Kurdish Wiktionary (Wîkîferheng) pipeline: Kiwix **ZIM** ingest, PostgreSQL st
 | [docs/PROJECT_SPEC.md](docs/PROJECT_SPEC.md) | Architecture, stack, API contract, acceptance criteria |
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Phased tasks (0–7), verification commands, resume checklist |
 | [docs/MDX_MDD_GUIDE.md](docs/MDX_MDD_GUIDE.md) | **What MDX/MDD are**, how to build/extract, CLI + planned HTTP API |
+| [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Expected latency smoke targets (ZIM vs SQL) |
 
 Agents: follow [.cursor/rules/fitflow-git.mdc](.cursor/rules/fitflow-git.mdc) for all git operations.
 
@@ -42,7 +43,10 @@ curl -s http://127.0.0.1:8000/health | jq .
 uv run ruff check src tests
 uv run mypy src
 uv run pytest
+uv run pytest --cov=src --cov-report=term-missing
 ```
+
+CI runs ruff, mypy, pytest (with Testcontainers Postgres integration), and builds `docker/api.Dockerfile` on push/PR.
 
 Copy [`.env.example`](.env.example) to `.env` to override `ZIM_PATH`, database URL, and related settings.
 
