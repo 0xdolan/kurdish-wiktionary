@@ -1,3 +1,12 @@
+name: wikitionary-to-mdx
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql+asyncpg://wiktionary:wiktionary@postgres:5432/wiktionary
+  ZIM_PATH: /app/zim/wiktionary/wiktionary_ku_all_nopic_2026-06.zim
+  DEFAULT_DATA_SOURCE: sql
+  LOG_LEVEL: INFO
+  RATE_LIMIT_RPM: "120"
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -14,6 +23,47 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./zim:/app/zim:ro
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    profiles:
+      - ingest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./zim:/app/zim:ro
+    command:
+      - --zim-path
+      - /app/zim/wiktionary/wiktionary_ku_all_nopic_2026-06.zim
+      - --ingest
+      - --max-entries
+      - "500"
 
 volumes:
   postgres_data:

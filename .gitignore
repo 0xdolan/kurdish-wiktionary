@@ -12,5 +12,9 @@ wheels/
 # Local env
 .env
 
+# Coverage
+.coverage
+coverage.xml
+
 # Kiwix archives (download locally; see README)
 zim/**/*.zim

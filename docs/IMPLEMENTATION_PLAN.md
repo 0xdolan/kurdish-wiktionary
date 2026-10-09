@@ -12,8 +12,8 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 
 | Field | Value |
 |-------|--------|
-| **Current phase** | Phase 6 — ready to start |
-| **Last completed task** | 5.6 |
+| **Current phase** | Phase 7 — ready to start |
+| **Last completed task** | 6.4 |
 | **Blockers** | None recorded |
 | **Branch / commit** | feat/phase-1-extraction (local) |
 
@@ -27,7 +27,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 | 3 | PostgreSQL schema & migrations | ✅ Done | ✅ |
 | 4 | FastAPI service | ✅ Done | ✅ |
 | 5 | Tests, CI, hardening | ✅ Done | ✅ |
-| 6 | Documentation & ops runbook | ⬜ Not started | ⬜ |
+| 6 | Documentation & ops runbook | ✅ Done | ✅ |
 | 7 | MDX/MDD export (mdict-utils) | ⬜ Not started | ⬜ |
 
 **Legend:** ⬜ Not started · 🟡 In progress · ✅ Done
@@ -238,10 +238,10 @@ uv run pytest --cov=src --cov-report=term-missing
 ### Tasks
 
 - [x] **6.1** `docker/api.Dockerfile` — multi-stage, non-root user, uv install. *(landed in Phase 5 for CI)*
-- [ ] **6.2** `docker/worker.Dockerfile` — ingest job entrypoint.
-- [ ] **6.3** `docker-compose.yml` — postgres volume, ZIM bind mount `./zim`, env file template `.env.example`.
-- [ ] **6.4** README: quickstart, ingest, API examples, **MDX build link to [MDX_MDD_GUIDE.md](./MDX_MDD_GUIDE.md)**, troubleshooting.
-- [ ] **6.5** Update this plan’s **Progress snapshot** to ✅ for all phases when done.
+- [x] **6.2** `docker/worker.Dockerfile` — ingest job entrypoint.
+- [x] **6.3** `docker-compose.yml` — postgres volume, ZIM bind mount `./zim`, env file template `.env.example`.
+- [x] **6.4** README: quickstart, ingest, API examples, **MDX build link to [MDX_MDD_GUIDE.md](./MDX_MDD_GUIDE.md)**, troubleshooting.
+- [x] **6.5** Runbook in [RUNBOOK.md](./RUNBOOK.md); Phase 7 remains open.
 
 ---
 
