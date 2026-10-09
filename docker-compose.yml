@@ -65,5 +65,22 @@ services:
       - --max-entries
       - "500"
 
+  catalog:
+    build:
+      context: .
+      dockerfile: docker/catalog.Dockerfile
+    profiles:
+      - catalog
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./zim:/app/zim:ro
+
 volumes:
   postgres_data:

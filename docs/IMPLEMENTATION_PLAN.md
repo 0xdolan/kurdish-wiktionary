@@ -13,7 +13,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 | Field | Value |
 |-------|--------|
 | **Current phase** | All planned phases complete |
-| **Last completed task** | 7.12 |
+| **Last completed task** | 8.4 |
 | **Blockers** | None recorded |
 | **Branch / commit** | feat/phase-1-extraction (local) |
 
@@ -29,6 +29,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 | 5 | Tests, CI, hardening | ✅ Done | ✅ |
 | 6 | Documentation & ops runbook | ✅ Done | ✅ |
 | 7 | MDX/MDD export (mdict-utils) | ✅ Done | ✅ |
+| 8 | Raw-text catalog (wordlist + extract) | ✅ Done | ✅ |
 
 **Legend:** ⬜ Not started · 🟡 In progress · ✅ Done
 
@@ -241,7 +242,7 @@ uv run pytest --cov=src --cov-report=term-missing
 - [x] **6.2** `docker/worker.Dockerfile` — ingest job entrypoint.
 - [x] **6.3** `docker-compose.yml` — postgres volume, ZIM bind mount `./zim`, env file template `.env.example`.
 - [x] **6.4** README: quickstart, ingest, API examples, **MDX build link to [MDX_MDD_GUIDE.md](./MDX_MDD_GUIDE.md)**, troubleshooting.
-- [x] **6.5** Runbook in [RUNBOOK.md](./RUNBOOK.md); Phase 7 remains open.
+- [x] **6.5** Runbook in [RUNBOOK.md](./RUNBOOK.md) (MDX, ingest, catalog).
 
 ---
 
@@ -301,6 +302,32 @@ docker compose up --build
 
 ---
 
+## Phase 8 — Raw-text catalog pipeline
+
+**Objective:** Index ~1M lemma titles in SQL, extract plain-text `WiktionaryEntry` rows sequentially (separate from MDX/HTML export).
+
+**Depends on:** Phases 1 (parser + entry model), 3 (Postgres), 4 (FastAPI), 6 (Docker).
+
+**Primary doc:** [RAW_TEXT_PIPELINE.md](./RAW_TEXT_PIPELINE.md)
+
+### Tasks
+
+- [x] **8.1** `wordlist_titles` migration + `ZimReader.iter_article_titles()`.
+- [x] **8.2** `src/catalog/` — sync, stats, extract; Rich CLI (`python -m src.catalog`).
+- [x] **8.3** `/catalog/*` HTTP routes with async jobs (`catalog_sync`, `catalog_extract`) + job status.
+- [x] **8.4** `docker/catalog.Dockerfile`, Compose profile `catalog`, RUNBOOK + CI image build.
+
+### Verification
+
+```bash
+uv run alembic upgrade head
+uv run python -m src.catalog stats
+docker compose --profile catalog run --rm catalog sync-wordlist
+curl -s -X POST localhost:8000/catalog/extract -H 'Content-Type: application/json' -d '{"limit":10}' | jq .
+```
+
+---
+
 ## Dependency graph (phases)
 
 ```mermaid
@@ -313,6 +340,7 @@ flowchart LR
   P5[Phase 5 Tests CI]
   P6[Phase 6 Docker Docs]
   P7[Phase 7 MDX MDD]
+  P8[Phase 8 Catalog]
   P0 --> P1
   P1 --> P2
   P1 --> P3
@@ -322,10 +350,14 @@ flowchart LR
   P1 --> P7
   P3 --> P7
   P4 --> P7
+  P1 --> P8
+  P3 --> P8
+  P4 --> P8
   P4 --> P5
   P4 --> P6
   P5 --> P6
   P7 --> P6
+  P8 --> P6
 ```
 
 ---

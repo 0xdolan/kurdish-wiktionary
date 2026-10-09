@@ -23,11 +23,11 @@
 
 | Phase | Name | Status |
 |-------|------|--------|
-| **C0** | Spec + schema (`wordlist_titles`) | 🟡 In progress |
-| **C1** | ZIM title scan + SQL sync + stats | 🟡 In progress |
-| **C2** | Rich CLI (`python -m src.catalog`) | 🟡 In progress |
-| **C3** | HTTP `/catalog/*` API + jobs | 🟡 In progress |
-| **C4** | Full-ZIM extract hardening (resume, rate limits, docs) | ⬜ Planned |
+| **C0** | Spec + schema (`wordlist_titles`) | ✅ Done |
+| **C1** | ZIM title scan + SQL sync + stats | ✅ Done |
+| **C2** | Rich CLI (`python -m src.catalog`) | ✅ Done |
+| **C3** | HTTP `/catalog/*` API + async jobs | ✅ Done |
+| **C4** | Docker catalog profile + RUNBOOK | ✅ Done |
 
 ## Tasks (C0–C3)
 
@@ -36,8 +36,9 @@
 - [x] **C1.2** Alembic `wordlist_titles` table + indexes.
 - [x] **C1.3** `sync_wordlist_to_sql`, `compute_catalog_stats`.
 - [x] **C2.1** CLI: `stats`, `sync-wordlist`, `extract --limit N` with Rich progress.
-- [x] **C3.1** `GET /catalog/stats`, `GET /catalog/wordlist`, `POST /catalog/wordlist/sync`, `POST /catalog/extract`.
-- [ ] **C4.1** Docker worker profile for catalog extract; RUNBOOK section.
+- [x] **C3.1** `GET /catalog/stats`, `GET /catalog/wordlist`, async `POST /catalog/wordlist/sync`, `POST /catalog/extract`, `GET /catalog/jobs/{id}`.
+- [x] **C3.2** Sync helpers: `POST /catalog/wordlist/sync/wait`, `POST /catalog/extract/wait` (small batches / dev).
+- [x] **C4.1** Docker `catalog` service (profile `catalog`); [RUNBOOK.md](./RUNBOOK.md) section.
 
 ## Verification
 
@@ -49,6 +50,8 @@ uv run python -m src.catalog sync-wordlist
 uv run python -m src.catalog extract --limit 200
 curl -s http://127.0.0.1:8000/catalog/stats | jq .
 curl -s 'http://127.0.0.1:8000/catalog/wordlist?limit=5' | jq .
+curl -s -X POST http://127.0.0.1:8000/catalog/wordlist/sync | jq .
+curl -s -X POST http://127.0.0.1:8000/catalog/extract -H 'Content-Type: application/json' -d '{"limit":50}' | jq .
 ```
 
 ## Related docs

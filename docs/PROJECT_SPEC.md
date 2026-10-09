@@ -17,6 +17,7 @@ Build a production-grade system that **extracts**, **normalizes**, **persists**,
 4. **Docker Compose** for local and deployable stacks (API + worker + PostgreSQL).
 5. **CI/CD**, **strict typing**, **linting**, and **tests** targeting ≥90% coverage path.
 6. **MDX/MDD export** via **[mdict-utils](https://pypi.org/project/mdict-utils/)** — pack/unpack, API-driven build and extract jobs, operator documentation ([MDX_MDD_GUIDE.md](./MDX_MDD_GUIDE.md)).
+7. **Raw-text catalog** — lemma wordlist in SQL, sequential plain-text extraction (no HTML in JSON); see [RAW_TEXT_PIPELINE.md](./RAW_TEXT_PIPELINE.md).
 
 The Wiktionary HTML layout is not fixed over time; parsers must be **structural and defensive**, inferring a baseline schema from representative pages while defaulting missing sections to empty collections or `null`.
 
@@ -35,6 +36,7 @@ The Wiktionary HTML layout is not fixed over time; parsers must be **structural 
 | G5 | Observable operations: structured logging, health diagnostics, RFC 7807-style JSON errors. |
 | G6 | Reproducible environments via `uv` lockfiles and container images. |
 | G7 | Build and extract **MDict 2.0** `.mdx` / `.mdd` pairs from SQL or ZIM using `mdict-utils`; document format and usage for operators. |
+| G8 | Maintain a SQL-backed **lemma catalog** (~1M titles) and extract **plain-text** entries independently of MDX/HTML export. |
 
 ### 2.2 Non-goals (v1)
 
@@ -56,7 +58,7 @@ The Wiktionary HTML layout is not fixed over time; parsers must be **structural 
 | HTML | **selectolax** (primary), **BeautifulSoup4** (fallback / tests) | Prefer speed; BS4 for edge-case fixtures |
 | MDX / MDD | **[mdict-utils](https://pypi.org/project/mdict-utils/)** ≥1.3.14 | CLI `mdict` for pack/unpack; wrap in `asyncio.create_subprocess_exec` |
 | Config | **Pydantic v2** `BaseSettings` | Secrets from env; no secrets in repo |
-| Containers | Multi-stage **Dockerfiles** + **docker-compose.yml** | `api`, `worker`, `postgres` |
+| Containers | Multi-stage **Dockerfiles** + **docker-compose.yml** | `api`, `worker`, `catalog`, `postgres` |
 | Quality | **pytest** + **pytest-asyncio**, **mypy** (strict), **ruff** | **pytest-cov** toward 90%+ |
 
 ---
@@ -183,7 +185,7 @@ Implementations:
 
 ---
 
-## 9. HTTP API (Phase 4 + Phase 7)
+## 9. HTTP API (Phase 4 + Phase 7 + Phase 8)
 
 ### 9.1 Wiktionary read API (Phase 4)
 
@@ -210,6 +212,22 @@ See [MDX_MDD_GUIDE.md](./MDX_MDD_GUIDE.md) for format background and CLI equival
 | GET | `/mdx/build/{job_id}/download` | Zip of artifacts + `manifest.json` |
 
 Build requests accept `data_source` (`sql` \| `zim`), `include_media`, optional `limit` (dev), and title/description overrides.
+
+### 9.3 Raw-text catalog API (Phase 8)
+
+See [RAW_TEXT_PIPELINE.md](./RAW_TEXT_PIPELINE.md). Responses use the canonical entry schema (plain text fields only).
+
+| Method | Path | Behavior |
+|--------|------|----------|
+| GET | `/catalog/stats` | ZIM title count, wordlist totals by status, `entries` row count |
+| GET | `/catalog/wordlist` | Paginated wordlist rows; optional `status` filter |
+| POST | `/catalog/wordlist/sync` | **202** — async job: scan ZIM titles → upsert `wordlist_titles` |
+| POST | `/catalog/wordlist/sync/wait` | Synchronous sync (dev; may timeout on full corpus) |
+| POST | `/catalog/extract` | **202** — async job: parse pending titles → upsert `entries` |
+| POST | `/catalog/extract/wait` | Synchronous extract for small `limit` |
+| GET | `/catalog/jobs/{job_id}` | Job progress for catalog sync/extract |
+
+CLI equivalent: `python -m src.catalog` (`stats`, `sync-wordlist`, `extract`).
 
 **Cross-cutting:**
 

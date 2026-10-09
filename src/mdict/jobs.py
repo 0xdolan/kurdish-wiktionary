@@ -10,6 +10,8 @@ from typing import Any
 class JobKind(StrEnum):
     BUILD = "build"
     EXTRACT = "extract"
+    CATALOG_SYNC = "catalog_sync"
+    CATALOG_EXTRACT = "catalog_extract"
 
 
 class JobStatus(StrEnum):

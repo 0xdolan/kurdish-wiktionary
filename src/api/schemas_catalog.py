@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from src.api.schemas_mdx import JobCreatedResponse, JobStatusResponse
+
 
 class CatalogStatsResponse(BaseModel):
     zim_path: str
@@ -46,3 +48,11 @@ class CatalogExtractResponse(BaseModel):
     extracted: int
     skipped: int
     failed: int
+
+
+CatalogJobCreatedResponse = JobCreatedResponse
+CatalogJobStatusResponse = JobStatusResponse
+
+
+class CatalogExtractSyncRequest(BaseModel):
+    limit: int = Field(default=100, ge=1, le=500)

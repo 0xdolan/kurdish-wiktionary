@@ -9,6 +9,7 @@ Day-two operations for the Kurdish Wiktionary API stack.
 | `postgres` | Primary store for ingested entries |
 | `api` | FastAPI (`GET /health`, `/words`, …) |
 | `worker` | One-shot ZIM → Postgres ingest (Compose profile `ingest`) |
+| `catalog` | Wordlist sync + raw-text extract CLI (Compose profile `catalog`) |
 
 ZIM files are **bind-mounted** from `./zim` (not baked into images). See [README](../README.md) for download paths.
 
@@ -63,6 +64,26 @@ Restore on a fresh volume with `pg_restore` (test on a non-production clone firs
 | Migrations fail on start | Old volume schema | `docker compose down -v` (destroys data) or manual Alembic repair |
 | Slow `GET /words` on ZIM | Full-archive scan | Use `X-Data-Source: sql` after ingest; see [PERFORMANCE.md](./PERFORMANCE.md) |
 | Rate limit 429 | Default 120 RPM | Raise `RATE_LIMIT_RPM` in `.env` for local dev |
+
+## Raw-text catalog (wordlist → SQL)
+
+Index ~1M lemma titles, then extract plain-text entries (no HTML in API JSON):
+
+```bash
+# CLI (Rich progress bars)
+docker compose --profile catalog run --rm catalog stats
+docker compose --profile catalog run --rm catalog sync-wordlist
+docker compose --profile catalog run --rm catalog extract --limit 1000
+
+# HTTP (async jobs)
+curl -s -X POST http://127.0.0.1:8000/catalog/wordlist/sync | jq .
+curl -s http://127.0.0.1:8000/catalog/jobs/JOB_ID | jq .
+curl -s -X POST http://127.0.0.1:8000/catalog/extract \
+  -H 'Content-Type: application/json' -d '{"limit":500}' | jq .
+curl -s http://127.0.0.1:8000/catalog/stats | jq .
+```
+
+Details: [RAW_TEXT_PIPELINE.md](./RAW_TEXT_PIPELINE.md).
 
 ## MDX export
 

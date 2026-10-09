@@ -54,3 +54,6 @@ jobs:
 
       - name: Build worker image
         run: docker build -f docker/worker.Dockerfile -t wikitionary-worker:ci .
+
+      - name: Build catalog image
+        run: docker build -f docker/catalog.Dockerfile -t wikitionary-catalog:ci .
