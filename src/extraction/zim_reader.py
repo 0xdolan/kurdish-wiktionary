@@ -64,6 +64,19 @@ class ZimReader:
         html = item.content.tobytes().decode("utf-8", errors="replace")
         return ZimArticle(title=entry.title, path=entry.path, html=html)
 
+    def iter_article_titles(self) -> Iterator[str]:
+        """Lemma titles only (no HTML load) — used for wordlist indexing."""
+        for entry_id in range(self._archive.all_entry_count):
+            entry = self._archive._get_entry_by_id(entry_id)
+            if entry.is_redirect:
+                continue
+            title = entry.title
+            if is_wiktionary_article_title(title):
+                yield title
+
+    def count_article_titles(self) -> int:
+        return sum(1 for _ in self.iter_article_titles())
+
     def iter_articles(self) -> Iterator[ZimArticle]:
         total = self._archive.all_entry_count
         for entry_id in range(total):

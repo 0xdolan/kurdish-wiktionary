@@ -1,0 +1,15 @@
+---
+description: Raw-text catalog pipeline — wordlist SQL, no HTML in catalog API
+globs:
+  - src/catalog/**
+  - src/api/routers/catalog.py
+  - docs/RAW_TEXT_PIPELINE.md
+---
+
+# Raw-text catalog
+
+Follow [docs/RAW_TEXT_PIPELINE.md](../../docs/RAW_TEXT_PIPELINE.md).
+
+- Persist lemma **titles** in `wordlist_titles` before bulk extract.
+- Catalog API/CLI returns **plain text** fields from `WiktionaryEntry`; do not add HTML to catalog responses.
+- MDX/HTML export stays in `src/mdict/` only.

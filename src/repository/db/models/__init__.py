@@ -10,6 +10,7 @@ from src.repository.db.models.entry import (
     EntryPronunciationRow,
     EntrySynonymRow,
 )
+from src.repository.db.models.wordlist import WordlistExtractStatus, WordlistTitleModel
 
 __all__ = [
     "Base",
@@ -22,4 +23,6 @@ __all__ = [
     "EntryPhoneticRow",
     "EntryPronunciationRow",
     "EntrySynonymRow",
+    "WordlistExtractStatus",
+    "WordlistTitleModel",
 ]

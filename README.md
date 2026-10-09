@@ -12,6 +12,7 @@ Kurdish Wiktionary (Wîkîferheng) pipeline: Kiwix **ZIM** ingest, PostgreSQL st
 | [docs/RUNBOOK.md](docs/RUNBOOK.md) | **Docker stack**, ingest jobs, backups, troubleshooting |
 | [docs/MDX_MDD_GUIDE.md](docs/MDX_MDD_GUIDE.md) | **What MDX/MDD are**, how to build/extract, CLI + planned HTTP API |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Expected latency smoke targets (ZIM vs SQL) |
+| [docs/RAW_TEXT_PIPELINE.md](docs/RAW_TEXT_PIPELINE.md) | **Wordlist in SQL**, raw-text extract, Rich CLI |
 
 Agents: follow [.cursor/rules/fitflow-git.mdc](.cursor/rules/fitflow-git.mdc) for all git operations.
 
@@ -36,6 +37,23 @@ curl -s -H 'X-Data-Source: zim' http://127.0.0.1:8000/words/heval | jq .
 ```
 
 The API container runs **Alembic migrations** on startup. Operator details: [docs/RUNBOOK.md](docs/RUNBOOK.md).
+
+## Raw-text catalog (wordlist → extract)
+
+Plain-text fields only (no HTML). Index titles, then extract into Postgres:
+
+```bash
+uv run alembic upgrade head
+uv run python -m src.catalog stats
+uv run python -m src.catalog sync-wordlist    # scan ZIM → wordlist_titles
+uv run python -m src.catalog extract --limit 500
+
+curl -s http://127.0.0.1:8000/catalog/stats | jq .
+curl -s 'http://127.0.0.1:8000/catalog/wordlist?limit=10' | jq .
+curl -s -X POST http://127.0.0.1:8000/catalog/wordlist/sync | jq .
+```
+
+See [docs/RAW_TEXT_PIPELINE.md](docs/RAW_TEXT_PIPELINE.md).
 
 ## API examples
 
