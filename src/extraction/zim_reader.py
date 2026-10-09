@@ -47,6 +47,23 @@ class ZimReader:
             path=self._path,
         )
 
+    def get_article_by_title(self, title: str) -> ZimArticle | None:
+        if not self._path.is_file():
+            return None
+        if not self._archive.has_entry_by_title(title):
+            return None
+        entry = self._archive.get_entry_by_title(title)
+        if entry.is_redirect:
+            entry = entry.get_redirect_entry()
+        try:
+            item = entry.get_item()
+        except RuntimeError:
+            return None
+        if item.mimetype != "text/html":
+            return None
+        html = item.content.tobytes().decode("utf-8", errors="replace")
+        return ZimArticle(title=entry.title, path=entry.path, html=html)
+
     def iter_articles(self) -> Iterator[ZimArticle]:
         total = self._archive.all_entry_count
         for entry_id in range(total):

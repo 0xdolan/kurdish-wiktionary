@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.api.deps import lifespan_context
-from src.api.routers import health
+from src.api.routers import health, words
 from src.config import get_settings
 from src.core.exceptions import AppError
 from src.core.logging import configure_logging, get_logger
@@ -43,6 +43,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.router, prefix=settings.api_prefix)
+    app.include_router(words.router, prefix=settings.api_prefix)
 
     @app.exception_handler(AppError)
     async def app_error_handler(_request: Request, exc: AppError) -> JSONResponse:

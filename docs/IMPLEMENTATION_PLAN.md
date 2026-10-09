@@ -12,8 +12,8 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 
 | Field | Value |
 |-------|--------|
-| **Current phase** | Phase 2 — ready to start |
-| **Last completed task** | 1.8 |
+| **Current phase** | Phase 3 — ready to start |
+| **Last completed task** | 2.6 |
 | **Blockers** | None recorded |
 | **Branch / commit** | feat/phase-1-extraction (local) |
 
@@ -23,7 +23,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 |-------|------|--------|--------------------|
 | 0 | Foundation & tooling | ✅ Done | ✅ |
 | 1 | ZIM extraction & schema | ✅ Done | ✅ |
-| 2 | Hybrid repository layer | ⬜ Not started | ⬜ |
+| 2 | Hybrid repository layer | ✅ Done | ✅ |
 | 3 | PostgreSQL schema & migrations | ⬜ Not started | ⬜ |
 | 4 | FastAPI service | ⬜ Not started | ⬜ |
 | 5 | Tests, CI, hardening | ⬜ Not started | ⬜ |
@@ -119,12 +119,12 @@ uv run pytest tests/unit/test_html_parser.py -v
 
 ### Tasks
 
-- [ ] **2.1** `src/repository/protocol.py` — `WiktionaryRepositoryProto` (Protocol or ABC).
-- [ ] **2.2** `src/repository/zim_repository.py` — `get_entry`, `list_entries` (list may scan titles — document performance limits).
-- [ ] **2.3** `src/repository/sql_repository.py` — stub then implement after Phase 3.
-- [ ] **2.4** `src/repository/factory.py` — build repo from Settings + optional header override.
-- [ ] **2.5** `src/core/services/wiktionary_service.py` — thin domain service over protocol.
-- [ ] **2.6** Unit tests with mocked ZIM reader and mocked SQL session.
+- [x] **2.1** `src/repository/protocol.py` — `WiktionaryRepositoryProto` (Protocol or ABC).
+- [x] **2.2** `src/repository/zim_repository.py` — `get_entry`, `list_entries` (list may scan titles — document performance limits).
+- [x] **2.3** `src/repository/sql_repository.py` — stub then implement after Phase 3.
+- [x] **2.4** `src/repository/factory.py` — build repo from Settings + optional header override.
+- [x] **2.5** `src/core/services/wiktionary_service.py` — thin domain service over protocol.
+- [x] **2.6** Unit tests with mocked ZIM reader and mocked SQL session.
 
 ### Deliverables
 

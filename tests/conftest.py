@@ -10,7 +10,8 @@ def anyio_backend() -> str:
 
 
 @pytest.fixture
-def app():
+def app(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DEFAULT_DATA_SOURCE", "zim")
     get_settings.cache_clear()
     return create_app()
 
