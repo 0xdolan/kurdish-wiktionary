@@ -31,7 +31,14 @@ class JobCreatedResponse(BaseModel):
 
 class JobStatusResponse(BaseModel):
     job_id: str
-    kind: Literal["build", "extract", "catalog_sync", "catalog_extract"]
+    kind: Literal[
+        "build",
+        "extract",
+        "catalog_sync",
+        "catalog_extract",
+        "catalog_canonical_sync",
+        "catalog_canonical_extract",
+    ]
     status: Literal["pending", "running", "completed", "failed"]
     progress: dict[str, Any] = Field(default_factory=dict)
     error: str | None = None

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.extraction.zim_reader import ZimReader
 from src.repository.db.models import EntryModel, WordlistExtractStatus, WordlistTitleModel
+from src.repository.db.models.canonical import CanonicalExtractStatus, CanonicalLemmaModel
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,5 +56,81 @@ async def fetch_catalog_stats(session: AsyncSession, zim_path: Path) -> CatalogS
         wordlist_extracted=await _count_status(WordlistExtractStatus.EXTRACTED),
         wordlist_skipped=await _count_status(WordlistExtractStatus.SKIPPED),
         wordlist_failed=await _count_status(WordlistExtractStatus.FAILED),
+        entries_total=entries_total,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ZimFileStats:
+    path: str
+    uuid: str | None
+    title_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalStats:
+    total: int
+    pending: int
+    extracted: int
+    skipped: int
+    failed: int
+    in_all_configured_zims: int
+    in_one_zim_only: int
+    entries_total: int
+
+
+def scan_all_zim_stats(zim_paths: list[Path]) -> list[ZimFileStats]:
+    result: list[ZimFileStats] = []
+    for path in zim_paths:
+        count, uuid = count_zim_titles_sync(path)
+        result.append(ZimFileStats(path=str(path.resolve()), uuid=uuid, title_count=count))
+    return result
+
+
+async def fetch_canonical_stats(
+    session: AsyncSession,
+    *,
+    configured_zim_count: int,
+) -> CanonicalStats:
+    async def _status(status: CanonicalExtractStatus) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(CanonicalLemmaModel)
+            .where(CanonicalLemmaModel.extract_status == status.value)
+        )
+        return int((await session.execute(stmt)).scalar_one())
+
+    total = int(
+        (await session.execute(select(func.count()).select_from(CanonicalLemmaModel))).scalar_one()
+    )
+    in_all = int(
+        (
+            await session.execute(
+                select(func.count())
+                .select_from(CanonicalLemmaModel)
+                .where(CanonicalLemmaModel.source_count >= configured_zim_count)
+            )
+        ).scalar_one()
+    )
+    in_one = int(
+        (
+            await session.execute(
+                select(func.count())
+                .select_from(CanonicalLemmaModel)
+                .where(CanonicalLemmaModel.source_count == 1)
+            )
+        ).scalar_one()
+    )
+    entries_total = int(
+        (await session.execute(select(func.count()).select_from(EntryModel))).scalar_one()
+    )
+    return CanonicalStats(
+        total=total,
+        pending=await _status(CanonicalExtractStatus.PENDING),
+        extracted=await _status(CanonicalExtractStatus.EXTRACTED),
+        skipped=await _status(CanonicalExtractStatus.SKIPPED),
+        failed=await _status(CanonicalExtractStatus.FAILED),
+        in_all_configured_zims=in_all,
+        in_one_zim_only=in_one,
         entries_total=entries_total,
     )

@@ -13,6 +13,7 @@ Kurdish Wiktionary (Wîkîferheng) pipeline: Kiwix **ZIM** ingest, PostgreSQL st
 | [docs/MDX_MDD_GUIDE.md](docs/MDX_MDD_GUIDE.md) | **What MDX/MDD are**, how to build/extract, CLI + planned HTTP API |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Expected latency smoke targets (ZIM vs SQL) |
 | [docs/RAW_TEXT_PIPELINE.md](docs/RAW_TEXT_PIPELINE.md) | **Wordlist in SQL**, raw-text extract, Rich CLI |
+| [docs/DBeaver.md](docs/DBeaver.md) | **DBeaver** connection to Docker Postgres |
 
 Agents: follow [.cursor/rules/fitflow-git.mdc](.cursor/rules/fitflow-git.mdc) for all git operations.
 

@@ -45,3 +45,13 @@ def test_parse_messy_html_filters_blank_definitions() -> None:
     entry = parse_wiktionary_html("peyv", MESSY_HTML)
     assert entry.definitions == ["Valid sense."]
     assert entry.pronunciations[0].endswith(".wav")
+
+
+def test_parse_decodes_html_entities_in_definitions() -> None:
+    html = """
+    <div class="mw-parser-output">
+      <ol><li>W&#238;k&#238;ferheng &amp; heval</li></ol>
+    </div>
+    """
+    entry = parse_wiktionary_html("test", html)
+    assert entry.definitions == ["Wîkîferheng & heval"]

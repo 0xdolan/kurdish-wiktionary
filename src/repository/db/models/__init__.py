@@ -1,3 +1,4 @@
+from src.repository.db.models.canonical import CanonicalExtractStatus, CanonicalLemmaModel
 from src.repository.db.models.entry import (
     Base,
     EntryAntonymRow,
@@ -13,6 +14,8 @@ from src.repository.db.models.entry import (
 from src.repository.db.models.wordlist import WordlistExtractStatus, WordlistTitleModel
 
 __all__ = [
+    "CanonicalExtractStatus",
+    "CanonicalLemmaModel",
     "Base",
     "EntryAntonymRow",
     "EntryDefinitionRow",

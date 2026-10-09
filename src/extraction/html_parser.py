@@ -1,9 +1,9 @@
-import re
 from typing import Any
 
 from selectolax.lexbor import LexborHTMLParser, LexborNode
 
 from src.core.models import WiktionaryEntry
+from src.extraction.text_clean import decode_plain_text
 
 LAYOUT_VERSION = "ku-mw-2026-v1"
 
@@ -43,7 +43,7 @@ def _clean_text(node: LexborNode | None) -> str:
     if node is None:
         return ""
     text = node.text(separator=" ", strip=True)
-    return re.sub(r"\s+", " ", text).strip()
+    return decode_plain_text(text)
 
 
 def _heading_label(node: LexborNode) -> str:
@@ -184,7 +184,7 @@ def parse_wiktionary_html(
     metadata.setdefault("layout_version", LAYOUT_VERSION)
 
     return WiktionaryEntry(
-        entry=entry,
+        entry=decode_plain_text(entry),
         part_of_speech=part_of_speech,
         definitions=unique_definitions,
         phonetic_transcriptions=phonetic_transcriptions,

@@ -6,6 +6,10 @@ from sqlalchemy import func, select
 
 from src.api.deps import AppStateDep, DbSessionDep, SettingsDep
 from src.api.schemas_catalog import (
+    CanonicalExtractResponse,
+    CanonicalStatsResponse,
+    CanonicalSyncResponse,
+    CatalogAuditResponse,
     CatalogExtractResponse,
     CatalogExtractSyncRequest,
     CatalogJobCreatedResponse,
@@ -14,11 +18,16 @@ from src.api.schemas_catalog import (
     CatalogSyncResponse,
     WordlistItemResponse,
     WordlistPageResponse,
+    ZimFileStatsResponse,
 )
 from src.api.schemas_mdx import JobCreatedResponse
+from src.catalog.audit import audit_canonical_extraction
+from src.catalog.canonical_extract import extract_pending_canonical
+from src.catalog.canonical_sync import sync_canonical_wordlist
 from src.catalog.extract import extract_pending_wordlist
-from src.catalog.stats import fetch_catalog_stats
+from src.catalog.stats import fetch_canonical_stats, fetch_catalog_stats, scan_all_zim_stats
 from src.catalog.sync import sync_wordlist_to_sql
+from src.catalog.zim_paths import resolve_zim_paths
 from src.mdict.jobs import JobKind, JobRecord, JobRegistry
 from src.repository.db.base import get_session_factory, init_engine
 from src.repository.db.models import WordlistTitleModel
@@ -190,6 +199,158 @@ async def catalog_job_status(
     if record is None or record.kind not in {
         JobKind.CATALOG_SYNC,
         JobKind.CATALOG_EXTRACT,
+        JobKind.CATALOG_CANONICAL_SYNC,
+        JobKind.CATALOG_CANONICAL_EXTRACT,
     }:
         raise HTTPException(status_code=404, detail="Catalog job not found.")
     return _job_response(record)
+
+
+@router.get("/canonical/stats", response_model=CanonicalStatsResponse)
+async def catalog_canonical_stats(
+    settings: SettingsDep,
+    session: DbSessionDep,
+) -> CanonicalStatsResponse:
+    zim_paths = resolve_zim_paths(settings)
+    zim_files = [
+        ZimFileStatsResponse(path=r.path, uuid=r.uuid, title_count=r.title_count)
+        for r in scan_all_zim_stats(zim_paths)
+    ]
+    stats = await fetch_canonical_stats(session, configured_zim_count=len(zim_paths))
+    return CanonicalStatsResponse(
+        zim_files=zim_files,
+        total=stats.total,
+        pending=stats.pending,
+        extracted=stats.extracted,
+        skipped=stats.skipped,
+        failed=stats.failed,
+        in_all_configured_zims=stats.in_all_configured_zims,
+        in_one_zim_only=stats.in_one_zim_only,
+        entries_total=stats.entries_total,
+    )
+
+
+@router.post("/canonical/sync", response_model=CatalogJobCreatedResponse, status_code=202)
+async def catalog_canonical_sync_async(
+    settings: SettingsDep,
+    jobs: Annotated[JobRegistry, Depends(_jobs)],
+) -> JobCreatedResponse:
+    zim_paths = resolve_zim_paths(settings)
+    for path in zim_paths:
+        if not path.is_file():
+            raise HTTPException(status_code=503, detail=f"ZIM not readable: {path}")
+    record = jobs.create(JobKind.CATALOG_CANONICAL_SYNC)
+
+    async def _run(job_record: JobRecord) -> None:
+        init_engine(settings.database_url)
+        job_record.progress = {"phase": "scanning_zims", "count": len(zim_paths)}
+
+        def on_progress(done: int, total: int) -> None:
+            job_record.progress = {"phase": "upserting", "done": done, "total": total}
+
+        async with get_session_factory()() as session:
+            result = await sync_canonical_wordlist(
+                session,
+                zim_paths,
+                progress=on_progress,
+            )
+        job_record.progress = {
+            "phase": "completed",
+            "unique_lemmas": result.unique_lemmas,
+            "in_all_zims": result.in_all_zims,
+        }
+
+    jobs.start_background(record.id, _run)
+    return JobCreatedResponse(job_id=record.id)
+
+
+@router.post("/canonical/sync/wait", response_model=CanonicalSyncResponse)
+async def catalog_canonical_sync_wait(
+    settings: SettingsDep,
+    session: DbSessionDep,
+) -> CanonicalSyncResponse:
+    zim_paths = resolve_zim_paths(settings)
+    for path in zim_paths:
+        if not path.is_file():
+            raise HTTPException(status_code=503, detail=f"ZIM not readable: {path}")
+    result = await sync_canonical_wordlist(session, zim_paths)
+    return CanonicalSyncResponse(
+        zim_files=result.zim_files,
+        unique_lemmas=result.unique_lemmas,
+        upserted=result.upserted,
+        in_all_zims=result.in_all_zims,
+        in_single_zim=result.in_single_zim,
+    )
+
+
+@router.post("/canonical/extract", response_model=CatalogJobCreatedResponse, status_code=202)
+async def catalog_canonical_extract_async(
+    body: CatalogExtractSyncRequest,
+    settings: SettingsDep,
+    jobs: Annotated[JobRegistry, Depends(_jobs)],
+) -> JobCreatedResponse:
+    zim_paths = resolve_zim_paths(settings)
+    for path in zim_paths:
+        if not path.is_file():
+            raise HTTPException(status_code=503, detail=f"ZIM not readable: {path}")
+    record = jobs.create(JobKind.CATALOG_CANONICAL_EXTRACT)
+
+    async def _run(job_record: JobRecord) -> None:
+        init_engine(settings.database_url)
+        job_record.progress = {"phase": "extracting", "limit": body.limit}
+
+        def on_progress(done: int, total: int) -> None:
+            job_record.progress = {"phase": "extracting", "done": done, "total": total}
+
+        async with get_session_factory()() as session:
+            result = await extract_pending_canonical(
+                session,
+                zim_paths,
+                limit=body.limit,
+                progress=on_progress,
+            )
+        job_record.progress = {
+            "phase": "completed",
+            "extracted": result.extracted,
+            "skipped": result.skipped,
+            "failed": result.failed,
+        }
+
+    jobs.start_background(record.id, _run)
+    return JobCreatedResponse(job_id=record.id)
+
+
+@router.post("/canonical/extract/wait", response_model=CanonicalExtractResponse)
+async def catalog_canonical_extract_wait(
+    body: CatalogExtractSyncRequest,
+    settings: SettingsDep,
+    session: DbSessionDep,
+) -> CanonicalExtractResponse:
+    zim_paths = resolve_zim_paths(settings)
+    for path in zim_paths:
+        if not path.is_file():
+            raise HTTPException(status_code=503, detail=f"ZIM not readable: {path}")
+    result = await extract_pending_canonical(
+        session,
+        zim_paths,
+        limit=body.limit,
+    )
+    return CanonicalExtractResponse(
+        attempted=result.attempted,
+        extracted=result.extracted,
+        skipped=result.skipped,
+        failed=result.failed,
+    )
+
+
+@router.get("/audit", response_model=CatalogAuditResponse)
+async def catalog_audit(session: DbSessionDep) -> CatalogAuditResponse:
+    report = await audit_canonical_extraction(session)
+    return CatalogAuditResponse(
+        canonical_total=report.canonical_total,
+        canonical_extracted=report.canonical_extracted,
+        canonical_pending=report.canonical_pending,
+        extracted_missing_entry_id=report.extracted_missing_entry_id,
+        entries_with_html_entities=report.entries_with_html_entities,
+        sample_entity_lemmas=report.sample_entity_lemmas,
+    )

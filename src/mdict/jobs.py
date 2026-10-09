@@ -12,6 +12,8 @@ class JobKind(StrEnum):
     EXTRACT = "extract"
     CATALOG_SYNC = "catalog_sync"
     CATALOG_EXTRACT = "catalog_extract"
+    CATALOG_CANONICAL_SYNC = "catalog_canonical_sync"
+    CATALOG_CANONICAL_EXTRACT = "catalog_canonical_extract"
 
 
 class JobStatus(StrEnum):

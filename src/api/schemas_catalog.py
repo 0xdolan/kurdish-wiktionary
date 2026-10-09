@@ -56,3 +56,45 @@ CatalogJobStatusResponse = JobStatusResponse
 
 class CatalogExtractSyncRequest(BaseModel):
     limit: int = Field(default=100, ge=1, le=500)
+
+
+class ZimFileStatsResponse(BaseModel):
+    path: str
+    uuid: str | None
+    title_count: int
+
+
+class CanonicalStatsResponse(BaseModel):
+    zim_files: list[ZimFileStatsResponse]
+    total: int
+    pending: int
+    extracted: int
+    skipped: int
+    failed: int
+    in_all_configured_zims: int
+    in_one_zim_only: int
+    entries_total: int
+
+
+class CanonicalSyncResponse(BaseModel):
+    zim_files: int
+    unique_lemmas: int
+    upserted: int
+    in_all_zims: int
+    in_single_zim: int
+
+
+class CanonicalExtractResponse(BaseModel):
+    attempted: int
+    extracted: int
+    skipped: int
+    failed: int
+
+
+class CatalogAuditResponse(BaseModel):
+    canonical_total: int
+    canonical_extracted: int
+    canonical_pending: int
+    extracted_missing_entry_id: int
+    entries_with_html_entities: int
+    sample_entity_lemmas: list[str]

@@ -32,6 +32,10 @@ class Settings(BaseSettings):
         description="Async SQLAlchemy URL",
     )
     zim_path: Path = Field(default_factory=_default_zim_path)
+    zim_paths: str = Field(
+        default="",
+        description="Comma-separated ZIM paths for canonical wordlist (falls back to zim_path)",
+    )
     default_data_source: DataSource = DataSource.SQL
     cors_origins: str = Field(default="http://localhost:3000,http://127.0.0.1:3000")
     rate_limit_rpm: int = Field(default=120, ge=1)
