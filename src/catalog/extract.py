@@ -57,11 +57,15 @@ async def extract_pending_wordlist(
     zim_path: Path,
     *,
     limit: int = 100,
+    include_failed: bool = False,
     progress: Callable[[ProgressTick], None] | None = None,
 ) -> ExtractBatchResult:
+    statuses = [WordlistExtractStatus.PENDING.value]
+    if include_failed:
+        statuses.append(WordlistExtractStatus.FAILED.value)
     stmt = (
         select(WordlistTitleModel)
-        .where(WordlistTitleModel.extract_status == WordlistExtractStatus.PENDING.value)
+        .where(WordlistTitleModel.extract_status.in_(statuses))
         .order_by(WordlistTitleModel.id.asc())
         .limit(max(1, limit))
     )

@@ -46,11 +46,21 @@ class Settings(BaseSettings):
     mdx_build_max_concurrent: int = Field(default=1, ge=1)
     mdx_include_media: bool = True
     media_export_dir: Path = Field(default=Path("build/media"))
+    catalog_state_dir: Path = Field(
+        default=Path("build/catalog/state"),
+        description="Catalog CLI checkpoints for --resume",
+    )
 
     app_name: str = "wikitionary-to-mdx"
     api_prefix: str = ""
 
-    @field_validator("zim_path", "mdx_work_dir", "media_export_dir", mode="before")
+    @field_validator(
+        "zim_path",
+        "mdx_work_dir",
+        "media_export_dir",
+        "catalog_state_dir",
+        mode="before",
+    )
     @classmethod
     def expand_path(cls, value: str | Path) -> Path:
         return Path(value).expanduser()

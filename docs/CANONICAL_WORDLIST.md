@@ -23,6 +23,13 @@ docker compose --profile catalog run --rm --build catalog extract-canonical --li
 docker compose --profile catalog run --rm --build catalog \
   extract-canonical --all --limit 10000
 
+# 4c. **Resume** after Ctrl+C (checkpoints under build/catalog/state; default --resume)
+docker compose --profile catalog run --rm --build catalog \
+  extract-canonical --all --limit 10000 --resume
+
+# Fresh run (ignore checkpoint): add --no-resume
+# Retry previously failed lemmas: add --retry-failed
+
 # 5. Audit: extracted vs entry_id, HTML entity spot-check on definitions
 docker compose --profile catalog run --rm catalog audit
 

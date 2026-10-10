@@ -53,6 +53,7 @@ async def sync_canonical_wordlist(
     zim_paths: list[Path],
     *,
     batch_size: int = 2000,
+    upsert_start_offset: int = 0,
     progress: Callable[[ProgressTick], None] | None = None,
 ) -> CanonicalSyncResult:
     merged = await asyncio.to_thread(_scan_zims, zim_paths)
@@ -62,7 +63,10 @@ async def sync_canonical_wordlist(
     in_all = in_single = 0
     zim_count = len(zim_paths)
 
-    for offset in range(0, total, batch_size):
+    start = max(0, min(upsert_start_offset, total))
+    if progress is not None and start > 0:
+        progress(ProgressTick(done=start, total=total))
+    for offset in range(start, total, batch_size):
         chunk_keys = keys[offset : offset + batch_size]
         rows: list[dict[str, object]] = []
         for key in chunk_keys:

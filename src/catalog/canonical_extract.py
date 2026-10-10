@@ -147,11 +147,15 @@ async def extract_pending_canonical(
     zim_paths: list[Path],
     *,
     limit: int = 100,
+    include_failed: bool = False,
     progress: Callable[[ProgressTick], None] | None = None,
 ) -> CanonicalExtractBatchResult:
+    statuses = [CanonicalExtractStatus.PENDING.value]
+    if include_failed:
+        statuses.append(CanonicalExtractStatus.FAILED.value)
     stmt = (
         select(CanonicalLemmaModel)
-        .where(CanonicalLemmaModel.extract_status == CanonicalExtractStatus.PENDING.value)
+        .where(CanonicalLemmaModel.extract_status.in_(statuses))
         .order_by(CanonicalLemmaModel.title_normalized.asc())
         .limit(max(1, limit))
     )

@@ -1,23 +1,50 @@
 import argparse
 import asyncio
+from collections.abc import Awaitable, Callable
 from pathlib import Path
+from typing import Any, Protocol
 
 from rich.console import Console
 from rich.table import Table
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.catalog.audit import audit_canonical_extraction
 from src.catalog.canonical_extract import extract_pending_canonical
 from src.catalog.canonical_sync import sync_canonical_wordlist
+from src.catalog.checkpoint import (
+    CatalogCheckpoint,
+    clear_checkpoint,
+    fingerprint_single_zim,
+    fingerprint_zim_paths,
+    load_checkpoint,
+    save_checkpoint,
+)
+from src.catalog.cli_args import add_extract_arguments, add_resume_arguments
 from src.catalog.cli_progress import CatalogJobProgress, ProgressTick
 from src.catalog.extract import extract_pending_wordlist
+from src.catalog.resume_ops import requeue_failed_canonical, requeue_failed_wordlist
 from src.catalog.stats import fetch_canonical_stats, fetch_catalog_stats, scan_all_zim_stats
 from src.catalog.sync import sync_wordlist_to_sql
 from src.catalog.zim_paths import resolve_zim_paths
 from src.config import get_settings
 from src.core.logging import configure_logging
+from src.extraction.zim_reader import ZimReader
 from src.repository.db.base import dispose_engine, get_session_factory, init_engine
 
 console = Console()
+
+
+class _ExtractBatchRunner(Protocol):
+    async def requeue_failed(self, session: AsyncSession) -> int: ...
+
+    async def run_batch(
+        self,
+        session: AsyncSession,
+        *,
+        limit: int,
+        include_failed: bool,
+        progress: Callable[[ProgressTick], None] | None,
+    ) -> Any: ...
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,6 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     sync_p = sub.add_parser("sync-wordlist", help="Per-ZIM titles into wordlist_titles (legacy)")
     sync_p.add_argument("--zim-path", type=Path, default=None)
+    add_resume_arguments(sync_p)
 
     canon_sync = sub.add_parser(
         "sync-canonical",
@@ -45,10 +73,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Repeat for each ZIM (default: ZIM_PATHS or ZIM_PATH)",
     )
+    add_resume_arguments(canon_sync)
 
     ext_p = sub.add_parser("extract", help="Extract pending per-ZIM wordlist rows (legacy)")
     ext_p.add_argument("--limit", type=int, default=100)
     ext_p.add_argument("--zim-path", type=Path, default=None)
+    add_extract_arguments(ext_p)
 
     canon_ext = sub.add_parser(
         "extract-canonical",
@@ -61,18 +91,61 @@ def build_parser() -> argparse.ArgumentParser:
         help="Batch size (max rows per invocation; use 5000–10000 for throughput)",
     )
     canon_ext.add_argument(
-        "--all",
-        action="store_true",
-        help="Repeat batches until every pending canonical lemma is processed",
-    )
-    canon_ext.add_argument(
         "--zim-path",
         type=Path,
         action="append",
         default=None,
     )
+    add_extract_arguments(canon_ext)
 
     return parser
+
+
+def _init_checkpoint(
+    *,
+    state_dir: Path,
+    command: str,
+    fingerprint: str,
+    limit: int,
+    run_all: bool,
+    resume: bool,
+) -> CatalogCheckpoint:
+    if not resume:
+        clear_checkpoint(state_dir, command, fingerprint)
+        return CatalogCheckpoint(
+            command=command,
+            fingerprint=fingerprint,
+            limit=limit,
+            run_all=run_all,
+        )
+    loaded = load_checkpoint(state_dir, command, fingerprint)
+    if loaded is None:
+        return CatalogCheckpoint(
+            command=command,
+            fingerprint=fingerprint,
+            limit=limit,
+            run_all=run_all,
+        )
+    if loaded.limit != limit or loaded.run_all != run_all:
+        console.print(
+            "[yellow]Checkpoint ignored[/yellow] (limit or --all changed); starting fresh totals."
+        )
+        clear_checkpoint(state_dir, command, fingerprint)
+        return CatalogCheckpoint(
+            command=command,
+            fingerprint=fingerprint,
+            limit=limit,
+            run_all=run_all,
+        )
+    console.print(
+        f"[cyan]Resuming[/cyan] {command}: batch={loaded.batch_index}, "
+        f"items={loaded.totals.attempted:,}, upsert_offset={loaded.upsert_offset:,}"
+    )
+    return loaded
+
+
+def _persist_checkpoint(state_dir: Path, checkpoint: CatalogCheckpoint) -> None:
+    save_checkpoint(state_dir, checkpoint)
 
 
 async def _run_stats() -> None:
@@ -152,13 +225,23 @@ async def _run_audit() -> None:
         console.print(f"[yellow]Sample lemmas with entities:[/yellow] {samples}")
 
 
-async def _run_sync(zim_path: Path) -> None:
+async def _run_sync(zim_path: Path, *, resume: bool) -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
     init_engine(settings.database_url)
     session_factory = get_session_factory()
+    fingerprint = fingerprint_single_zim(zim_path)
+    checkpoint = _init_checkpoint(
+        state_dir=settings.catalog_state_dir,
+        command="sync-wordlist",
+        fingerprint=fingerprint,
+        limit=0,
+        run_all=False,
+        resume=resume,
+    )
 
     with CatalogJobProgress(console, "Sync wordlist") as job:
+        job.run_totals = checkpoint.totals
         started = False
 
         def on_progress(tick: ProgressTick) -> None:
@@ -172,9 +255,16 @@ async def _run_sync(zim_path: Path) -> None:
                 )
                 started = True
             job.on_tick(tick)
+            checkpoint.upsert_offset = tick.done
+            _persist_checkpoint(settings.catalog_state_dir, checkpoint)
 
         async with session_factory() as session:
-            result = await sync_wordlist_to_sql(session, zim_path, progress=on_progress)
+            result = await sync_wordlist_to_sql(
+                session,
+                zim_path,
+                upsert_start_offset=checkpoint.upsert_offset,
+                progress=on_progress,
+            )
 
         job.finish_batch(
             attempted=result.scanned,
@@ -182,7 +272,9 @@ async def _run_sync(zim_path: Path) -> None:
             skipped=0,
             failed=0,
         )
+        checkpoint.totals = job.run_totals
 
+    clear_checkpoint(settings.catalog_state_dir, "sync-wordlist", fingerprint)
     console.print(
         f"[green]Done[/green]: scanned={result.scanned:,} new_rows={result.inserted:,} "
         f"(duplicates skipped by unique constraint)"
@@ -190,13 +282,23 @@ async def _run_sync(zim_path: Path) -> None:
     await dispose_engine()
 
 
-async def _run_sync_canonical(zim_paths: list[Path]) -> None:
+async def _run_sync_canonical(zim_paths: list[Path], *, resume: bool) -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
     init_engine(settings.database_url)
     session_factory = get_session_factory()
+    fingerprint = fingerprint_zim_paths(zim_paths)
+    checkpoint = _init_checkpoint(
+        state_dir=settings.catalog_state_dir,
+        command="sync-canonical",
+        fingerprint=fingerprint,
+        limit=0,
+        run_all=False,
+        resume=resume,
+    )
 
     with CatalogJobProgress(console, "Sync canonical") as job:
+        job.run_totals = checkpoint.totals
         started = False
 
         def on_progress(tick: ProgressTick) -> None:
@@ -210,9 +312,16 @@ async def _run_sync_canonical(zim_paths: list[Path]) -> None:
                 )
                 started = True
             job.on_tick(tick)
+            checkpoint.upsert_offset = tick.done
+            _persist_checkpoint(settings.catalog_state_dir, checkpoint)
 
         async with session_factory() as session:
-            result = await sync_canonical_wordlist(session, zim_paths, progress=on_progress)
+            result = await sync_canonical_wordlist(
+                session,
+                zim_paths,
+                upsert_start_offset=checkpoint.upsert_offset,
+                progress=on_progress,
+            )
 
         job.finish_batch(
             attempted=result.unique_lemmas,
@@ -221,6 +330,7 @@ async def _run_sync_canonical(zim_paths: list[Path]) -> None:
             failed=0,
         )
 
+    clear_checkpoint(settings.catalog_state_dir, "sync-canonical", fingerprint)
     console.print(
         f"[green]Done[/green]: zims={result.zim_files} unique_lemmas={result.unique_lemmas:,} "
         f"upserted={result.upserted:,} in_all_zims={result.in_all_zims:,} "
@@ -229,80 +339,53 @@ async def _run_sync_canonical(zim_paths: list[Path]) -> None:
     await dispose_engine()
 
 
-async def _run_extract(zim_path: Path, limit: int) -> None:
-    settings = get_settings()
-    configure_logging(settings.log_level)
-    init_engine(settings.database_url)
-    session_factory = get_session_factory()
-
-    async with session_factory() as session:
-        catalog = await fetch_catalog_stats(session, zim_path)
-    pending = catalog.wordlist_pending
-    batch_total = CatalogJobProgress.estimate_batch_count(pending, limit)
-
-    with CatalogJobProgress(console, "Extract wordlist") as job:
-        job.start_batch(
-            batch_index=1,
-            batch_total=batch_total,
-            item_total=min(limit, max(1, pending)),
-            corpus_pending=pending,
-        )
-
-        def on_progress(tick: ProgressTick) -> None:
-            job.on_tick(tick)
-
-        async with session_factory() as session:
-            result = await extract_pending_wordlist(
-                session,
-                zim_path,
-                limit=limit,
-                progress=on_progress,
-            )
-
-        job.finish_batch(
-            attempted=result.attempted,
-            extracted=result.extracted,
-            skipped=result.skipped,
-            failed=result.failed,
-        )
-
-    console.print(
-        f"[green]Batch complete[/green]: attempted={result.attempted} "
-        f"extracted={result.extracted} skipped={result.skipped} failed={result.failed} "
-        f"(corpus pending was {pending:,})"
-    )
-    await dispose_engine()
-
-
-async def _run_extract_canonical(
-    zim_paths: list[Path],
-    limit: int,
+async def _run_extract_loop(
     *,
-    run_all: bool = False,
+    settings: Any,
+    session_factory: Any,
+    fingerprint: str,
+    command: str,
+    limit: int,
+    run_all: bool,
+    resume: bool,
+    retry_failed: bool,
+    job_title: str,
+    pending_count_fn: Callable[[AsyncSession], Awaitable[int]],
+    extract_fn: _ExtractBatchRunner,
 ) -> None:
-    settings = get_settings()
-    configure_logging(settings.log_level)
-    init_engine(settings.database_url)
-    session_factory = get_session_factory()
+    checkpoint = _init_checkpoint(
+        state_dir=settings.catalog_state_dir,
+        command=command,
+        fingerprint=fingerprint,
+        limit=limit,
+        run_all=run_all,
+        resume=resume,
+    )
+    batch_index = checkpoint.batch_index
+    retried_failed = False
 
     async with session_factory() as session:
-        initial = await fetch_canonical_stats(session, configured_zim_count=len(zim_paths))
-    pending_start = initial.pending
+        if retry_failed and not retried_failed:
+            requeued = await extract_fn.requeue_failed(session)
+            if requeued:
+                console.print(f"[cyan]Re-queued {requeued:,} failed rows[/cyan]")
+            retried_failed = True
+        initial_pending = await pending_count_fn(session)
+    if checkpoint.pending_at_start is None:
+        checkpoint.pending_at_start = initial_pending
+
+    pending_start = checkpoint.pending_at_start
     batch_total = (
         CatalogJobProgress.estimate_batch_count(pending_start, limit) if run_all else 1
     )
 
-    batch_index = 0
+    with CatalogJobProgress(console, job_title) as job:
+        job.run_totals = checkpoint.totals
 
-    with CatalogJobProgress(console, "Extract canonical") as job:
         while True:
             batch_index += 1
             async with session_factory() as session:
-                corpus = await fetch_canonical_stats(
-                    session,
-                    configured_zim_count=len(zim_paths),
-                )
-                pending_now = corpus.pending
+                pending_now = await pending_count_fn(session)
                 item_total = min(limit, max(1, pending_now)) if pending_now else limit
 
                 job.start_batch(
@@ -315,10 +398,10 @@ async def _run_extract_canonical(
                 def on_progress(tick: ProgressTick) -> None:
                     job.on_tick(tick)
 
-                result = await extract_pending_canonical(
+                result = await extract_fn.run_batch(
                     session,
-                    zim_paths,
                     limit=limit,
+                    include_failed=False,
                     progress=on_progress,
                 )
 
@@ -329,30 +412,153 @@ async def _run_extract_canonical(
                 failed=result.failed,
             )
 
+            checkpoint.batch_index = batch_index
+            checkpoint.totals = job.run_totals
+            checkpoint.pending_at_start = pending_start
+            _persist_checkpoint(settings.catalog_state_dir, checkpoint)
+
             if not run_all or result.attempted == 0:
                 break
 
             if run_all and pending_start:
-                done = job.run_totals.attempted
-                remaining = max(0, pending_start - done)
+                remaining = max(0, pending_start - job.run_totals.attempted)
                 batch_total = CatalogJobProgress.estimate_batch_count(remaining, limit)
 
     totals = job.run_totals
+    async with session_factory() as session:
+        pending_left = await pending_count_fn(session)
+
+    if run_all and pending_left == 0:
+        clear_checkpoint(settings.catalog_state_dir, command, fingerprint)
+    elif not run_all:
+        console.print(
+            f"[dim]Checkpoint saved — rerun with --resume to continue "
+            f"({pending_left:,} pending)[/dim]"
+        )
+
     if run_all:
         console.print(
             "[bold green]Run complete[/bold green]: "
             f"batches={totals.batches} items={totals.attempted:,} "
             f"extracted={totals.extracted:,} skipped={totals.skipped:,} "
-            f"failed={totals.failed:,} "
-            f"(started with {pending_start:,} pending)"
+            f"failed={totals.failed:,} pending_left={pending_left:,}"
         )
     else:
         console.print(
-            f"[green]Batch 1/{batch_total}[/green]: attempted={totals.attempted} "
+            f"[green]Batch {batch_index}/{batch_total}[/green]: attempted={totals.attempted} "
             f"extracted={totals.extracted} skipped={totals.skipped} failed={totals.failed} "
-            f"(corpus pending {pending_start:,})"
+            f"(pending {pending_left:,})"
         )
 
+
+async def _run_extract(
+    zim_path: Path,
+    limit: int,
+    *,
+    run_all: bool,
+    resume: bool,
+    retry_failed: bool,
+) -> None:
+    settings = get_settings()
+    configure_logging(settings.log_level)
+    init_engine(settings.database_url)
+    session_factory = get_session_factory()
+    fingerprint = fingerprint_single_zim(zim_path)
+    zim_uuid = str(ZimReader(zim_path).metadata().uuid)
+
+    class _ExtractFn:
+        @staticmethod
+        async def requeue_failed(session: AsyncSession) -> int:
+            return await requeue_failed_wordlist(session, zim_uuid=zim_uuid)
+
+        @staticmethod
+        async def run_batch(
+            session: AsyncSession,
+            *,
+            limit: int,
+            include_failed: bool,
+            progress: Callable[[ProgressTick], None] | None,
+        ) -> Any:
+            return await extract_pending_wordlist(
+                session,
+                zim_path,
+                limit=limit,
+                include_failed=include_failed,
+                progress=progress,
+            )
+
+    async def pending_count(session: AsyncSession) -> int:
+        stats = await fetch_catalog_stats(session, zim_path)
+        return stats.wordlist_pending
+
+    await _run_extract_loop(
+        settings=settings,
+        session_factory=session_factory,
+        fingerprint=fingerprint,
+        command="extract",
+        limit=limit,
+        run_all=run_all,
+        resume=resume,
+        retry_failed=retry_failed,
+        job_title="Extract wordlist",
+        pending_count_fn=pending_count,
+        extract_fn=_ExtractFn,
+    )
+    await dispose_engine()
+
+
+async def _run_extract_canonical(
+    zim_paths: list[Path],
+    limit: int,
+    *,
+    run_all: bool,
+    resume: bool,
+    retry_failed: bool,
+) -> None:
+    settings = get_settings()
+    configure_logging(settings.log_level)
+    init_engine(settings.database_url)
+    session_factory = get_session_factory()
+    fingerprint = fingerprint_zim_paths(zim_paths)
+
+    class _ExtractFn:
+        @staticmethod
+        async def requeue_failed(session: AsyncSession) -> int:
+            return await requeue_failed_canonical(session)
+
+        @staticmethod
+        async def run_batch(
+            session: AsyncSession,
+            *,
+            limit: int,
+            include_failed: bool,
+            progress: Callable[[ProgressTick], None] | None,
+        ) -> Any:
+            return await extract_pending_canonical(
+                session,
+                zim_paths,
+                limit=limit,
+                include_failed=include_failed,
+                progress=progress,
+            )
+
+    async def pending_count(session: AsyncSession) -> int:
+        stats = await fetch_canonical_stats(session, configured_zim_count=len(zim_paths))
+        return stats.pending
+
+    await _run_extract_loop(
+        settings=settings,
+        session_factory=session_factory,
+        fingerprint=fingerprint,
+        command="extract-canonical",
+        limit=limit,
+        run_all=run_all,
+        resume=resume,
+        retry_failed=retry_failed,
+        job_title="Extract canonical",
+        pending_count_fn=pending_count,
+        extract_fn=_ExtractFn,
+    )
     await dispose_engine()
 
 
@@ -365,16 +571,28 @@ async def async_main(args: argparse.Namespace) -> int:
         await _run_audit()
     elif args.command == "sync-wordlist":
         path = args.zim_path or settings.zim_path
-        await _run_sync(path)
+        await _run_sync(path, resume=args.resume)
     elif args.command == "sync-canonical":
         paths = resolve_zim_paths(settings, args.zim_path)
-        await _run_sync_canonical(paths)
+        await _run_sync_canonical(paths, resume=args.resume)
     elif args.command == "extract":
         path = args.zim_path or settings.zim_path
-        await _run_extract(path, args.limit)
+        await _run_extract(
+            path,
+            args.limit,
+            run_all=args.all,
+            resume=args.resume,
+            retry_failed=args.retry_failed,
+        )
     elif args.command == "extract-canonical":
         paths = resolve_zim_paths(settings, args.zim_path)
-        await _run_extract_canonical(paths, args.limit, run_all=args.all)
+        await _run_extract_canonical(
+            paths,
+            args.limit,
+            run_all=args.all,
+            resume=args.resume,
+            retry_failed=args.retry_failed,
+        )
     return 0
 
 

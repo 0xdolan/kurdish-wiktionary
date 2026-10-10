@@ -42,6 +42,7 @@ async def sync_wordlist_to_sql(
     zim_path: Path,
     *,
     batch_size: int = 2000,
+    upsert_start_offset: int = 0,
     progress: Callable[[ProgressTick], None] | None = None,
 ) -> WordlistSyncResult:
     from sqlalchemy import func, select
@@ -51,7 +52,10 @@ async def sync_wordlist_to_sql(
     )
     rows = await asyncio.to_thread(_iter_title_rows, zim_path)
     scanned = len(rows)
-    for offset in range(0, scanned, batch_size):
+    start = max(0, min(upsert_start_offset, scanned))
+    if progress is not None and start > 0:
+        progress(ProgressTick(done=start, total=scanned))
+    for offset in range(start, scanned, batch_size):
         chunk = rows[offset : offset + batch_size]
         stmt = pg_insert(WordlistTitleModel).values(chunk)
         stmt = stmt.on_conflict_do_nothing(index_elements=["title_normalized", "zim_uuid"])
