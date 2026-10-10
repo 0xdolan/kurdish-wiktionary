@@ -27,13 +27,23 @@ class _LineFilterWriter:
         return len(data)
 
     def _emit_line(self, line: str) -> None:
+        stripped = line.strip()
+        if stripped in {"'ku'", "ku"}:
+            return
+        if stripped.startswith("'") and stripped.endswith("'") and len(stripped) <= 5:
+            return
         if any(token in line for token in _SUPPRESSED_SUBSTRINGS):
             return
         self._underlying.write(line + "\n")
 
     def flush(self) -> None:
         if self._pending:
-            if not any(token in self._pending for token in _SUPPRESSED_SUBSTRINGS):
+            pending = self._pending
+            stripped = pending.strip()
+            noisy = stripped in {"'ku'", "ku"} or (
+                stripped.startswith("'") and stripped.endswith("'") and len(stripped) <= 5
+            )
+            if not noisy and not any(token in pending for token in _SUPPRESSED_SUBSTRINGS):
                 self._underlying.write(self._pending)
             self._pending = ""
         self._underlying.flush()

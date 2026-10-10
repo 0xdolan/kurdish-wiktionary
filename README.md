@@ -15,6 +15,7 @@ Kurdish Wiktionary (Wîkîferheng) pipeline: Kiwix **ZIM** ingest, PostgreSQL st
 | [docs/RAW_TEXT_PIPELINE.md](docs/RAW_TEXT_PIPELINE.md) | **Wordlist in SQL**, raw-text extract, Rich CLI |
 | [docs/DBeaver.md](docs/DBeaver.md) | **DBeaver** connection to Docker Postgres |
 | [docs/LEXICON_API.md](docs/LEXICON_API.md) | **Lexicon API/CLI** — fields, HTML, media, preview/extract |
+| [docs/CATALOG_VERIFICATION.md](docs/CATALOG_VERIFICATION.md) | **Verify extract** — skipped/failed logs, SQL, retry |
 
 Agents: follow [.cursor/rules/fitflow-git.mdc](.cursor/rules/fitflow-git.mdc) for all git operations.
 

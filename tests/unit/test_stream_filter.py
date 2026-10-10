@@ -3,6 +3,14 @@ import io
 from src.core.stream_filter import _LineFilterWriter
 
 
+def test_line_filter_suppresses_bare_ku() -> None:
+    buf = io.StringIO()
+    writer = _LineFilterWriter(buf)
+    writer.write("'ku'\n")
+    writer.flush()
+    assert buf.getvalue() == ""
+
+
 def test_line_filter_suppresses_stemming_noise() -> None:
     buf = io.StringIO()
     writer = _LineFilterWriter(buf)

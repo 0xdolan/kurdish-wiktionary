@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.catalog.cli_progress import ProgressTick
+from src.catalog.outcomes import LemmaOutcome, lemma_outcome_from_row
 from src.catalog.zim_paths import sort_zim_paths_for_extract
 from src.core.models import WiktionaryEntry
 from src.extraction.parse_page import ParsedPage, parse_wiktionary_page
@@ -24,6 +25,7 @@ class CanonicalExtractBatchResult:
     extracted: int
     skipped: int
     failed: int
+    outcomes: list[LemmaOutcome]
 
 
 def _parse_from_zim(
@@ -162,6 +164,7 @@ async def extract_pending_canonical(
     rows = (await session.execute(stmt)).scalars().all()
     total = len(rows)
     extracted = skipped = failed = 0
+    outcomes: list[LemmaOutcome] = []
 
     for index, row in enumerate(rows, start=1):
         entry, error, page, parsed_pages = await asyncio.to_thread(
@@ -175,10 +178,26 @@ async def extract_pending_canonical(
                 row.extract_status = CanonicalExtractStatus.SKIPPED.value
                 row.last_error = error
                 skipped += 1
+                outcomes.append(
+                    lemma_outcome_from_row(
+                        title=row.title,
+                        title_normalized=row.title_normalized,
+                        status=CanonicalExtractStatus.SKIPPED.value,
+                        last_error=error,
+                    )
+                )
             else:
                 row.extract_status = CanonicalExtractStatus.FAILED.value
                 row.last_error = error
                 failed += 1
+                outcomes.append(
+                    lemma_outcome_from_row(
+                        title=row.title,
+                        title_normalized=row.title_normalized,
+                        status=CanonicalExtractStatus.FAILED.value,
+                        last_error=error,
+                    )
+                )
         else:
             entry_row = await upsert_entry(session, entry)
             if page is not None:
@@ -219,4 +238,5 @@ async def extract_pending_canonical(
         extracted=extracted,
         skipped=skipped,
         failed=failed,
+        outcomes=outcomes,
     )

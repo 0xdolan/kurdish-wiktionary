@@ -1,0 +1,11 @@
+---
+description: After catalog extract changes, document verification of skipped/failed outcomes
+globs: src/catalog/**,docs/CATALOG_VERIFICATION.md
+---
+
+# Catalog verification
+
+- Persist skip/fail reasons on `last_error`; use `catalog report` and `/catalog/outcomes` for review.
+- Full extract runs must write run logs under `catalog_state_dir/runs/` (manifest + batch JSONL).
+- Document operator commands in [docs/CATALOG_VERIFICATION.md](docs/CATALOG_VERIFICATION.md).
+- **Retry**: `--retry-failed` requeues `failed` only; skipped `no_definitions_or_phonetics` is usually intentional.

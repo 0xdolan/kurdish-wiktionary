@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.catalog.cli_progress import ProgressTick
+from src.catalog.outcomes import LemmaOutcome, lemma_outcome_from_row
 from src.core.models import WiktionaryEntry
 from src.extraction.html_parser import parse_wiktionary_html
 from src.extraction.zim_reader import ZimReader
@@ -21,6 +22,7 @@ class ExtractBatchResult:
     extracted: int
     skipped: int
     failed: int
+    outcomes: list[LemmaOutcome]
 
 
 def _parse_article_sync(
@@ -72,6 +74,7 @@ async def extract_pending_wordlist(
     rows = (await session.execute(stmt)).scalars().all()
     total = len(rows)
     extracted = skipped = failed = 0
+    outcomes: list[LemmaOutcome] = []
 
     for index, row in enumerate(rows, start=1):
         entry, error = await asyncio.to_thread(_parse_article_sync, zim_path, row.title)
@@ -81,10 +84,26 @@ async def extract_pending_wordlist(
                 row.extract_status = WordlistExtractStatus.SKIPPED.value
                 row.last_error = error
                 skipped += 1
+                outcomes.append(
+                    lemma_outcome_from_row(
+                        title=row.title,
+                        title_normalized=row.title_normalized,
+                        status=WordlistExtractStatus.SKIPPED.value,
+                        last_error=error,
+                    )
+                )
             else:
                 row.extract_status = WordlistExtractStatus.FAILED.value
                 row.last_error = error
                 failed += 1
+                outcomes.append(
+                    lemma_outcome_from_row(
+                        title=row.title,
+                        title_normalized=row.title_normalized,
+                        status=WordlistExtractStatus.FAILED.value,
+                        last_error=error,
+                    )
+                )
         else:
             entry_row = await upsert_entry(session, entry)
             row.extract_status = WordlistExtractStatus.EXTRACTED.value
@@ -109,4 +128,5 @@ async def extract_pending_wordlist(
         extracted=extracted,
         skipped=skipped,
         failed=failed,
+        outcomes=outcomes,
     )

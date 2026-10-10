@@ -95,6 +95,35 @@ class CatalogAuditResponse(BaseModel):
     canonical_total: int
     canonical_extracted: int
     canonical_pending: int
+    canonical_skipped: int
+    canonical_failed: int
     extracted_missing_entry_id: int
     entries_with_html_entities: int
     sample_entity_lemmas: list[str]
+
+
+class OutcomeCategoryResponse(BaseModel):
+    status: str
+    category: str
+    count: int
+    sample_titles: list[str]
+
+
+class OutcomeRowResponse(BaseModel):
+    title: str
+    title_normalized: str
+    status: str
+    reason: str | None
+    category: str
+    entry_id: int | None
+    extracted_at: str | None
+    retry_hint: str
+
+
+class OutcomeReportResponse(BaseModel):
+    scope: str
+    generated_at: str
+    skipped_total: int
+    failed_total: int
+    categories: list[OutcomeCategoryResponse]
+    rows: list[OutcomeRowResponse]

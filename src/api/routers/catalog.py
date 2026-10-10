@@ -16,6 +16,9 @@ from src.api.schemas_catalog import (
     CatalogJobStatusResponse,
     CatalogStatsResponse,
     CatalogSyncResponse,
+    OutcomeCategoryResponse,
+    OutcomeReportResponse,
+    OutcomeRowResponse,
     WordlistItemResponse,
     WordlistPageResponse,
     ZimFileStatsResponse,
@@ -26,6 +29,7 @@ from src.catalog.canonical_extract import extract_pending_canonical
 from src.catalog.canonical_sync import sync_canonical_wordlist
 from src.catalog.cli_progress import ProgressTick
 from src.catalog.extract import extract_pending_wordlist
+from src.catalog.outcomes import build_outcome_report
 from src.catalog.stats import fetch_canonical_stats, fetch_catalog_stats, scan_all_zim_stats
 from src.catalog.sync import sync_wordlist_to_sql
 from src.catalog.zim_paths import resolve_zim_paths
@@ -373,7 +377,40 @@ async def catalog_audit(session: DbSessionDep) -> CatalogAuditResponse:
         canonical_total=report.canonical_total,
         canonical_extracted=report.canonical_extracted,
         canonical_pending=report.canonical_pending,
+        canonical_skipped=report.canonical_skipped,
+        canonical_failed=report.canonical_failed,
         extracted_missing_entry_id=report.extracted_missing_entry_id,
         entries_with_html_entities=report.entries_with_html_entities,
         sample_entity_lemmas=report.sample_entity_lemmas,
+    )
+
+
+@router.get("/outcomes", response_model=OutcomeReportResponse)
+async def catalog_outcome_report(
+    session: DbSessionDep,
+    scope: Annotated[Literal["canonical", "wordlist"], Query()] = "canonical",
+    status: Annotated[Literal["both", "skipped", "failed"], Query()] = "both",
+    limit: Annotated[int, Query(ge=1, le=5000)] = 200,
+) -> OutcomeReportResponse:
+    report = await build_outcome_report(
+        session,
+        scope=scope,
+        status_filter=status,
+        row_limit=limit,
+    )
+    return OutcomeReportResponse(
+        scope=report.scope,
+        generated_at=report.generated_at,
+        skipped_total=report.skipped_total,
+        failed_total=report.failed_total,
+        categories=[
+            OutcomeCategoryResponse(
+                status=c.status,
+                category=c.category,
+                count=c.count,
+                sample_titles=c.sample_titles,
+            )
+            for c in report.categories
+        ],
+        rows=[OutcomeRowResponse(**row.__dict__) for row in report.rows],
     )

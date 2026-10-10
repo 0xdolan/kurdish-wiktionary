@@ -30,8 +30,9 @@ docker compose --profile catalog run --rm --build catalog \
 # Fresh run (ignore checkpoint): add --no-resume
 # Retry previously failed lemmas: add --retry-failed
 
-# 5. Audit: extracted vs entry_id, HTML entity spot-check on definitions
+# 5. Audit + skipped/failed report (see docs/CATALOG_VERIFICATION.md)
 docker compose --profile catalog run --rm catalog audit
+docker compose --profile catalog run --rm catalog report --export build/catalog/reports/outcomes.json
 
 # 6. HTTP read (after API rebuild)
 curl -s http://127.0.0.1:8000/catalog/canonical/stats | jq .

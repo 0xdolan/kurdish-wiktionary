@@ -22,7 +22,9 @@ from src.catalog.checkpoint import (
 from src.catalog.cli_args import add_extract_arguments, add_resume_arguments
 from src.catalog.cli_progress import CatalogJobProgress, ProgressTick
 from src.catalog.extract import extract_pending_wordlist
+from src.catalog.outcomes import build_outcome_report, report_to_json
 from src.catalog.resume_ops import requeue_failed_canonical, requeue_failed_wordlist
+from src.catalog.run_log import ExtractRunLogger
 from src.catalog.stats import fetch_canonical_stats, fetch_catalog_stats, scan_all_zim_stats
 from src.catalog.sync import sync_wordlist_to_sql
 from src.catalog.zim_paths import resolve_zim_paths
@@ -57,6 +59,28 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("stats", help="ZIM file counts, SQL wordlist, and canonical lemma stats")
     sub.add_parser("audit", help="Verify extracted rows and HTML entity decoding")
+
+    report_p = sub.add_parser(
+        "report",
+        help="Summarize skipped/failed lemmas with reasons (SQL + optional export)",
+    )
+    report_p.add_argument(
+        "--scope",
+        choices=["canonical", "wordlist"],
+        default="canonical",
+    )
+    report_p.add_argument(
+        "--status",
+        choices=["both", "skipped", "failed"],
+        default="both",
+    )
+    report_p.add_argument("--limit", type=int, default=100, help="Max detail rows in output")
+    report_p.add_argument(
+        "--export",
+        type=Path,
+        default=None,
+        help="Write full JSON report to this path",
+    )
 
     sync_p = sub.add_parser("sync-wordlist", help="Per-ZIM titles into wordlist_titles (legacy)")
     sync_p.add_argument("--zim-path", type=Path, default=None)
@@ -198,6 +222,51 @@ async def _run_stats() -> None:
     canon_table.add_row("In exactly one ZIM", str(canonical.in_one_zim_only))
     canon_table.add_row("Entry rows (total)", str(canonical.entries_total))
     console.print(canon_table)
+
+
+async def _run_report(
+    *,
+    scope: str,
+    status_filter: str,
+    limit: int,
+    export_path: Path | None,
+) -> None:
+    settings = get_settings()
+    init_engine(settings.database_url)
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        report = await build_outcome_report(
+            session,
+            scope=scope,
+            status_filter=status_filter,
+            row_limit=limit,
+        )
+    await dispose_engine()
+
+    summary = Table(title=f"Extract outcomes ({scope})")
+    summary.add_column("Status")
+    summary.add_column("Category")
+    summary.add_column("Count", justify="right")
+    summary.add_column("Samples")
+    for item in report.categories:
+        samples = ", ".join(item.sample_titles[:3]) or "—"
+        summary.add_row(item.status, item.category, str(item.count), samples)
+    console.print(summary)
+    console.print(
+        f"[bold]Totals[/bold]: skipped={report.skipped_total:,} failed={report.failed_total:,}"
+    )
+
+    if export_path is not None:
+        export_path.parent.mkdir(parents=True, exist_ok=True)
+        export_path.write_text(report_to_json(report), encoding="utf-8")
+        console.print(f"[green]Exported[/green] {export_path}")
+
+    if report.failed_total:
+        console.print(
+            "[cyan]Retry failed[/cyan]: "
+            "catalog extract-canonical --retry-failed --resume --all "
+            "(or extract for wordlist scope)"
+        )
 
 
 async def _run_audit() -> None:
@@ -378,6 +447,12 @@ async def _run_extract_loop(
     batch_total = (
         CatalogJobProgress.estimate_batch_count(pending_start, limit) if run_all else 1
     )
+    scope = "canonical" if command == "extract-canonical" else "wordlist"
+    run_logger = ExtractRunLogger(
+        settings.catalog_state_dir,
+        command=command,
+        fingerprint=fingerprint,
+    )
 
     with CatalogJobProgress(console, job_title) as job:
         job.run_totals = checkpoint.totals
@@ -411,6 +486,14 @@ async def _run_extract_loop(
                 skipped=result.skipped,
                 failed=result.failed,
             )
+            run_logger.log_batch(
+                batch_index=batch_index,
+                attempted=result.attempted,
+                extracted=result.extracted,
+                skipped=result.skipped,
+                failed=result.failed,
+                outcomes=getattr(result, "outcomes", []),
+            )
 
             checkpoint.batch_index = batch_index
             checkpoint.totals = job.run_totals
@@ -427,6 +510,25 @@ async def _run_extract_loop(
     totals = job.run_totals
     async with session_factory() as session:
         pending_left = await pending_count_fn(session)
+        outcome_report = await build_outcome_report(
+            session,
+            scope=scope,
+            status_filter="both",
+            row_limit=500,
+        )
+    report_path = run_logger.run_dir / "outcome-report.json"
+    report_path.write_text(report_to_json(outcome_report), encoding="utf-8")
+    manifest_path = run_logger.finalize(
+        totals={
+            "batches": totals.batches,
+            "attempted": totals.attempted,
+            "extracted": totals.extracted,
+            "skipped": totals.skipped,
+            "failed": totals.failed,
+        },
+        pending_left=pending_left,
+        report_path=str(report_path),
+    )
 
     if run_all and pending_left == 0:
         clear_checkpoint(settings.catalog_state_dir, command, fingerprint)
@@ -448,6 +550,16 @@ async def _run_extract_loop(
             f"[green]Batch {batch_index}/{batch_total}[/green]: attempted={totals.attempted} "
             f"extracted={totals.extracted} skipped={totals.skipped} failed={totals.failed} "
             f"(pending {pending_left:,})"
+        )
+    console.print(
+        f"[dim]Run log[/dim]: {manifest_path}  "
+        f"[dim]outcomes[/dim]: skipped={outcome_report.skipped_total:,} "
+        f"failed={outcome_report.failed_total:,} → {report_path}"
+    )
+    if outcome_report.failed_total:
+        console.print(
+            "[cyan]Retry failed[/cyan]: "
+            f"catalog {command} --retry-failed --resume" + (" --all" if run_all else "")
         )
 
 
@@ -569,6 +681,13 @@ async def async_main(args: argparse.Namespace) -> int:
         await _run_stats()
     elif args.command == "audit":
         await _run_audit()
+    elif args.command == "report":
+        await _run_report(
+            scope=args.scope,
+            status_filter=args.status,
+            limit=args.limit,
+            export_path=args.export,
+        )
     elif args.command == "sync-wordlist":
         path = args.zim_path or settings.zim_path
         await _run_sync(path, resume=args.resume)
