@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -259,7 +259,7 @@ def report_to_json(report: OutcomeReport) -> str:
             }
             for c in report.categories
         ],
-        "rows": [row.__dict__ for row in report.rows],
+        "rows": [asdict(row) for row in report.rows],
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
 

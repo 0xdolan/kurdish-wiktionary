@@ -166,11 +166,17 @@ def _init_checkpoint(
             limit=limit,
             run_all=run_all,
         )
-    console.print(
-        f"[cyan]Resuming[/cyan] {command}: batch={loaded.batch_index}, "
-        f"items={loaded.totals.attempted:,}, upsert_offset={loaded.upsert_offset:,}"
-    )
     return loaded
+
+
+def _announce_checkpoint_resume(checkpoint: CatalogCheckpoint) -> None:
+    if checkpoint.batch_index == 0 and checkpoint.totals.attempted == 0:
+        return
+    console.print(
+        f"[cyan]Resuming[/cyan] {checkpoint.command}: batch={checkpoint.batch_index}, "
+        f"items={checkpoint.totals.attempted:,}, "
+        f"upsert_offset={checkpoint.upsert_offset:,}"
+    )
 
 
 def _persist_checkpoint(state_dir: Path, checkpoint: CatalogCheckpoint) -> None:
@@ -360,6 +366,7 @@ async def _run_sync(zim_path: Path, *, resume: bool) -> None:
                 reason=stale,
             )
         checkpoint.db_corpus_total = legacy.wordlist_total
+        _announce_checkpoint_resume(checkpoint)
 
     with CatalogJobProgress(console, "Sync wordlist") as job:
         job.run_totals = checkpoint.totals
@@ -433,6 +440,7 @@ async def _run_sync_canonical(zim_paths: list[Path], *, resume: bool) -> None:
                 reason=stale,
             )
         checkpoint.db_corpus_total = canonical.total
+        _announce_checkpoint_resume(checkpoint)
 
     with CatalogJobProgress(console, "Sync canonical") as job:
         job.run_totals = checkpoint.totals
@@ -535,6 +543,7 @@ async def _run_extract_loop(
             batch_index = checkpoint.batch_index
         if checkpoint.db_corpus_total is None:
             checkpoint.db_corpus_total = corpus_total
+        _announce_checkpoint_resume(checkpoint)
 
     async with session_factory() as session:
         if retry_failed and not retried_failed:
