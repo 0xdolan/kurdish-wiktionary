@@ -31,7 +31,7 @@ def test_parse_minimal_kurdish_entry() -> None:
     assert any("Hevalê min" in d for d in entry.definitions)
     assert entry.phonetic_transcriptions == ["/heval/"]
     assert entry.examples
-    assert entry.metadata["layout_version"] == "ku-mw-2026-v1"
+    assert entry.metadata["layout_version"] == "ku-mw-2026-v3"
 
 
 def test_parse_empty_sections_returns_model() -> None:
@@ -62,6 +62,64 @@ def test_parse_synonym_and_antonym_sections() -> None:
     assert "heval" in entry.synonyms or "dost" in entry.synonyms
     assert entry.definitions == ["friend"]
     assert entry.metadata.get("section_html")
+
+
+HEVAL_INLINE_SYNONYM = """
+<div class="mw-parser-output">
+  <h3><span>Navdêr</span></h3>
+  <ol>
+    <li>Keç û kurên ji hev hez dikin. Hevmane: yar Nimûneyekê lê zêde bike</li>
+  </ol>
+</div>
+"""
+
+
+def test_parse_inline_hevmane_synonym() -> None:
+    entry = parse_wiktionary_html("heval", HEVAL_INLINE_SYNONYM)
+    assert "yar" in entry.synonyms
+
+
+HEVAL_MW_HEADING_SECTIONS = """
+<div class="mw-parser-output">
+  <div class="mw-heading mw-heading4"><h4 id="Hevmane">Hevmane</h4></div>
+  <ul>
+    <li><a href="birader#Kurmancî" title="birader">birader</a></li>
+    <li><a href="dost#Kurmancî" title="dost">dost</a></li>
+  </ul>
+  <div class="mw-heading mw-heading4"><h4 id="Dijmane">Dijmane</h4></div>
+  <ul><li><a href="dijmin#Kurmancî" title="dijmin">dijmin</a></li></ul>
+</div>
+"""
+
+
+def test_parse_mw_heading_h4_hevmane_dijmane_sections() -> None:
+    entry = parse_wiktionary_html("heval", HEVAL_MW_HEADING_SECTIONS)
+    assert "birader" in entry.synonyms
+    assert "dost" in entry.synonyms
+    assert "dijmin" in entry.antonyms
+    assert "hevmane" in (entry.metadata.get("section_html") or {})
+
+
+HEVAL_DEFINITION_WITH_LINKS = """
+<div class="mw-parser-output">
+  <ol>
+    <li><a href="keç" title="keç">Keç</a> û <a href="kur" title="kur">kurên</a> ji hev hez dikin.
+    <dl><dd><span class="nyms Hevmane"><span class="defdate">Hevmane:</span>
+      <a href="yar#Kurmancî" title="yar">yar</a></span></dd></dl>
+    <ul><li><span class="benimune">Nimûneyekê lê zêde bike
+      <span class="stubedit"><a class="external text" href="https://ku.wiktionary.org/w/index.php?title=heval&amp;action=edit">
+      <span>[ biguhêre ]</span></a></span></span></li></ul>
+    </li>
+  </ol>
+  <div class="mw-heading mw-heading4"><h4 id="Hevmane">Hevmane</h4></div>
+  <ul><li><a title="dost">dost</a></li></ul>
+</div>
+"""
+
+
+def test_parse_synonyms_exclude_definition_links_and_edit_stub() -> None:
+    entry = parse_wiktionary_html("heval", HEVAL_DEFINITION_WITH_LINKS)
+    assert entry.synonyms == ["dost", "yar"]
 
 
 def test_parse_decodes_html_entities_in_definitions() -> None:

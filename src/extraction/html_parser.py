@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from selectolax.lexbor import LexborHTMLParser, LexborNode
@@ -5,7 +6,7 @@ from selectolax.lexbor import LexborHTMLParser, LexborNode
 from src.core.models import WiktionaryEntry
 from src.extraction.text_clean import decode_plain_text
 
-LAYOUT_VERSION = "ku-mw-2026-v1"
+LAYOUT_VERSION = "ku-mw-2026-v3"
 
 _POS_HEADINGS = frozenset(
     {
@@ -33,10 +34,19 @@ _POS_HEADINGS = frozenset(
 )
 
 _ETYMOLOGY_KEYWORDS = ("etimoloj", "kok", "jêder")
-_SYNONYM_KEYWORDS = ("beranber", "hevwate", "synonym")
-_ANTONYM_KEYWORDS = ("berberev", "zîv", "ziv", "antonym")
+_SYNONYM_KEYWORDS = ("beranber", "hevwate", "hevmane", "synonym")
+_ANTONYM_KEYWORDS = ("berberev", "dijmane", "zîv", "ziv", "antonym")
 _DERIVED_KEYWORDS = ("jê", "jêder", "derived")
 _PRONUNCIATION_HEADINGS = ("bilêvkirin", "bilevkirin", "telaffuz")
+
+_INLINE_SYNONYM = re.compile(
+    r"(?i)\b(?:hevmane|beranber(?:ek)?|hevwate)\s*:\s*([^.\n\[]+)",
+)
+_INLINE_ANTONYM = re.compile(
+    r"(?i)\b(?:berberev|dijmane|zîv|ziv)\s*:\s*([^.\n\[]+)",
+)
+_NIMUNE_TRAIL = re.compile(r"\s*Nimûneyekê.*$", re.IGNORECASE)
+_EDIT_STUB_LEMMA = re.compile(r"biguhêre|biguhere", re.IGNORECASE)
 
 
 def _clean_text(node: LexborNode | None) -> str:
@@ -79,14 +89,40 @@ def _collect_list_items(root: LexborNode) -> list[str]:
     return items
 
 
+def _sanitize_relation_lemma(value: str) -> str | None:
+    token = value.strip()
+    if len(token) < 2:
+        return None
+    if token.startswith("[") or _EDIT_STUB_LEMMA.search(token):
+        return None
+    return token
+
+
+def _filter_relation_lemmas(values: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    for value in values:
+        token = _sanitize_relation_lemma(value)
+        if token:
+            cleaned.append(token)
+    return _unique_strings(cleaned)
+
+
 def _collect_wiktionary_links(root: LexborNode) -> list[str]:
     lemmas: list[str] = []
     for anchor in root.css("a"):
+        classes = anchor.attributes.get("class") or ""
+        if "external" in classes:
+            continue
+        href = anchor.attributes.get("href") or ""
+        if "action=edit" in href:
+            continue
         title = anchor.attributes.get("title", "")
         text = _clean_text(anchor)
         candidate = title.strip() if title else text
         if candidate and not candidate.startswith("Category:"):
-            lemmas.append(candidate)
+            lemma = _sanitize_relation_lemma(candidate)
+            if lemma:
+                lemmas.append(lemma)
     return lemmas
 
 
@@ -94,21 +130,98 @@ def _node_html_fragment(node: LexborNode) -> str:
     return node.html or ""
 
 
+def _is_mw_heading_wrapper(node: LexborNode | None) -> bool:
+    if node is None or node.tag != "div":
+        return False
+    classes = node.attributes.get("class") or ""
+    return "mw-heading" in classes
+
+
+def _heading_walk_start(heading: LexborNode) -> LexborNode:
+    """MediaWiki ZIM HTML wraps ``h3``/``h4`` in ``div.mw-heading``; content follows the wrapper."""
+    parent = heading.parent
+    if parent is not None and _is_mw_heading_wrapper(parent):
+        return parent
+    return heading
+
+
+def _next_sibling_node(node: LexborNode | None) -> LexborNode | None:
+    sibling = node.next if node is not None else None
+    while sibling is not None and sibling.tag == "-text":
+        sibling = sibling.next
+    return sibling
+
+
+def _is_section_boundary(node: LexborNode) -> bool:
+    if node.tag in {"h2", "h3", "h4"}:
+        return True
+    return _is_mw_heading_wrapper(node)
+
+
 def _content_after_heading(heading: LexborNode) -> tuple[list[str], str]:
     text_items: list[str] = []
     html_chunks: list[str] = []
-    sibling = heading.next
-    while sibling is not None and sibling.tag not in {"h2", "h3", "h4"}:
+    sibling = _next_sibling_node(_heading_walk_start(heading))
+    while sibling is not None and not _is_section_boundary(sibling):
         html_chunks.append(_node_html_fragment(sibling))
-        if sibling.tag in {"ul", "ol", "dl", "p"}:
-            text_items.extend(_collect_list_items(sibling))
-            if sibling.tag == "p":
-                paragraph = _clean_text(sibling)
-                if paragraph:
-                    text_items.append(paragraph)
+        if sibling.tag in {"ul", "ol", "dl"}:
             text_items.extend(_collect_wiktionary_links(sibling))
-        sibling = sibling.next
+        elif sibling.tag == "p":
+            paragraph = _clean_text(sibling)
+            if paragraph:
+                text_items.append(paragraph)
+            text_items.extend(_collect_wiktionary_links(sibling))
+        elif sibling.tag == "div" and sibling.css_first("ul, ol"):
+            text_items.extend(_collect_wiktionary_links(sibling))
+        sibling = _next_sibling_node(sibling)
     return text_items, "".join(html_chunks)
+
+
+def _clean_relation_fragment(raw: str) -> str:
+    text = _NIMUNE_TRAIL.sub("", raw).strip()
+    text = re.sub(r"\s*\[.*?\]\s*$", "", text).strip()
+    return decode_plain_text(text)
+
+
+def _split_relation_values(raw: str) -> list[str]:
+    chunk = _clean_relation_fragment(raw)
+    if not chunk:
+        return []
+    parts = re.split(r"[,;]|\s+û\s+|\s+and\s+", chunk)
+    out: list[str] = []
+    for part in parts:
+        token = part.strip()
+        if token and len(token) > 1:
+            out.append(token)
+    return out
+
+
+def _extract_inline_relations(root: LexborNode) -> tuple[list[str], list[str]]:
+    """Kurdish Wiktionary often uses inline labels (e.g. ``Hevmane: yar``) in ``<li>``."""
+    synonyms: list[str] = []
+    antonyms: list[str] = []
+    for node in root.css("li, p, dd, dt"):
+        text = _clean_text(node)
+        if not text:
+            continue
+        for match in _INLINE_SYNONYM.finditer(text):
+            synonyms.extend(_split_relation_values(match.group(1)))
+        for match in _INLINE_ANTONYM.finditer(text):
+            antonyms.extend(_split_relation_values(match.group(1)))
+        if node.tag in {"dd", "dt", "p"}:
+            lower = text.casefold()
+            if any(label in lower for label in ("hevmane:", "beranber:", "hevwate:")):
+                synonyms.extend(_collect_wiktionary_links(node))
+            if any(label in lower for label in ("berberev:", "dijmane:", "zîv:", "ziv:")):
+                antonyms.extend(_collect_wiktionary_links(node))
+    for node in root.css("span.nyms, span.Hevmane, span.Dijmane"):
+        classes = (node.attributes.get("class") or "").casefold()
+        links = _collect_wiktionary_links(node)
+        if "hevmane" in classes or "beranber" in classes:
+            synonyms.extend(links)
+        if "dijmane" in classes or "berberev" in classes:
+            antonyms.extend(links)
+    return _unique_strings(synonyms), _unique_strings(antonyms)
 
 
 def _gather_section_fields(root: LexborNode) -> tuple[dict[str, list[str]], dict[str, str]]:
@@ -185,7 +298,7 @@ def _section_bucket(heading: str) -> str:
     if norm in _POS_HEADINGS or any(norm.startswith(pos) for pos in _POS_HEADINGS):
         return "pos"
     if any(k in norm for k in _DERIVED_KEYWORDS) and norm in {"jê", "je"}:
-        return "derived"
+        return "derived_terms"
     if norm.startswith("navd") or norm.startswith("peyv"):
         return "pos"
     return "other"
@@ -210,8 +323,9 @@ def parse_wiktionary_html(
 
     if root is not None:
         section_fields, section_html = _gather_section_fields(root)
-        synonyms = section_fields["synonyms"]
-        antonyms = section_fields["antonyms"]
+        inline_synonyms, inline_antonyms = _extract_inline_relations(root)
+        synonyms = _filter_relation_lemmas(section_fields["synonyms"] + inline_synonyms)
+        antonyms = _filter_relation_lemmas(section_fields["antonyms"] + inline_antonyms)
         derived_terms = section_fields["derived_terms"]
 
         for heading in root.css("h2, h3, h4"):

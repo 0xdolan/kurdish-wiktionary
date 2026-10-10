@@ -18,7 +18,9 @@ COPY --chown=appuser:appuser assets ./assets
 COPY --chown=appuser:appuser migrations ./migrations
 COPY --chown=appuser:appuser alembic.ini ./
 COPY docker/entrypoint-catalog.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh \
+    && mkdir -p /app/build/catalog/state /app/build/catalog/reports \
+    && chown -R appuser:appuser /app/build
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 USER appuser
 ENTRYPOINT ["/app/entrypoint.sh"]

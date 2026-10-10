@@ -12,6 +12,17 @@ After `extract-canonical --all`, some lemmas are **`skipped`** (usually no defin
 | Summary | `outcome-report.json` + `run-manifest.json` in the same run folder |
 | Checkpoint | `build/catalog/state/checkpoints/` (resume only) |
 
+## Docker: `Permission denied: 'build'`
+
+If `sync-canonical` / `extract-canonical` fails creating `build/catalog/state`, prepare the bind mount (catalog UID **10001**):
+
+```bash
+mkdir -p build/catalog/state build/catalog/reports
+sudo chown -R 10001:10001 build/catalog
+```
+
+Then rebuild: `docker compose --profile catalog run --rm --build catalog stats`.
+
 ## CLI commands
 
 ```bash

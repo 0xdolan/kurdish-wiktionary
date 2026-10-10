@@ -9,7 +9,7 @@
 - Language variety blocks use **`h2`** with label in `span` (e.g. **Kurmancî**, **Soranî**, **Afrîkansî**).
 - Subsections use **`h3`** / **`h4`** (pronunciation, POS, etymology, derived forms).
 
-## Fields mapped by the parser (`layout_version: ku-mw-2026-v1`)
+## Fields mapped by the parser (`layout_version: ku-mw-2026-v3`)
 
 | Field | DOM hints |
 |-------|-----------|
@@ -19,7 +19,8 @@
 | `pronunciations` | Links to `.mp3`, `.wav`, `.ogg`, `.opus` (incl. Phonos buttons) |
 | `examples` | `.benimune`, `blockquote`, `.example` (stub “add example” lines filtered) |
 | `etymology` | First `h3` whose title matches etymology keywords; following `p` / `dl` text |
-| `synonyms` / `antonyms` / `derived_terms` | Reserved for section headings (Beranber, Zîv, Jê); extend as corpus grows |
+| `synonyms` / `antonyms` | `h3`/`h4` sections (**Hevmane**, **Dijmane**, Beranber, …) after `div.mw-heading` wrappers; inline `span.nyms` / **Hevmane:** in `dd` |
+| `derived_terms` | Section headings (Jê, …) |
 
 ## Variation / gaps
 

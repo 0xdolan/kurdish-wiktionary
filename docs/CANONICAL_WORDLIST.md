@@ -6,6 +6,13 @@ Build **one deduplicated lemma list** from every configured Kiwix ZIM, then for 
 
 ## Operator steps (Docker)
 
+Catalog runs as UID **10001** (`appuser`). Checkpoints and reports live under **`build/catalog/`** (bind-mounted). Create it once on the host so writes succeed:
+
+```bash
+mkdir -p build/catalog/state build/catalog/reports
+sudo chown -R 10001:10001 build/catalog   # or: chmod -R a+rwX build/catalog
+```
+
 ```bash
 # 1. Stack + migrations (API/catalog entrypoints run alembic)
 docker compose up -d postgres api

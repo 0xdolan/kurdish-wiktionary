@@ -43,7 +43,11 @@ def zim_path_candidates(article_zim_path: str, href: str) -> list[str]:
     joined = (article_dir / href).as_posix()
     candidates.append(joined)
     candidates.append(raw)
-    if not raw.startswith(("I/", "J/", "C/", "M/", "A/", "B/", "W/", "X/", "Y/", "Z/")):
+    if raw.startswith("_assets_/") or raw.startswith("./_assets_/"):
+        asset = raw.removeprefix("./")
+        candidates.append(asset)
+    _zim_prefixes = ("I/", "J/", "C/", "M/", "A/", "B/", "W/", "X/", "Y/", "Z/", "_assets_/")
+    if not raw.startswith(_zim_prefixes):
         candidates.append(f"I/{raw}")
         candidates.append(f"C/{raw}")
 
