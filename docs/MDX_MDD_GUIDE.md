@@ -108,7 +108,7 @@ mdict --title title.html --description description.html -a txt_dir/ wikiferheng.
 | `title.html` | Short dictionary name shown in MDict (e.g. **Wîkîferheng (Kurdish Wiktionary)**). |
 | `description.html` | Provenance: ZIM filename, build date, license, link to ku.wiktionary.org. |
 
-Templates live under `assets/mdict/templates/` (to be added in Phase 7).
+Templates live under `assets/mdict/templates/` (`title.html`, `description.html`).
 
 ### 3.3 MDD resource directory
 
@@ -152,7 +152,7 @@ uv add mdict-utils
 
 ## 5. Manual workflow (without API)
 
-Use this while Phase 7 is incomplete or for debugging.
+Use this for debugging or when you prefer CLI over HTTP jobs.
 
 ```bash
 cd /home/dolan/Documents/wiktionary_to_mdx
@@ -201,7 +201,7 @@ mdict -x mydict.mdd -d extract/mdd
 
 ---
 
-## 6. HTTP API (planned — Phase 7)
+## 6. HTTP API (implemented)
 
 All routes under prefix **`/mdx`**. Responses JSON unless downloading binary artifacts. Long builds run as **async jobs** (avoid request timeouts on ~1M entries).
 

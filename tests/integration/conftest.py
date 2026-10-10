@@ -38,7 +38,7 @@ def migrated_postgres_url(postgres_database_url: str) -> Iterator[str]:
     env = os.environ.copy()
     env["DATABASE_URL"] = postgres_database_url
     subprocess.run(
-        ["uv", "run", "alembic", "upgrade", "head"],
+        ["uv", "run", "python", "-m", "alembic", "upgrade", "head"],
         cwd=REPO_ROOT,
         env=env,
         check=True,

@@ -1,19 +1,18 @@
-import shutil
 from pathlib import Path
 
 import pytest
 from src.core.models import WiktionaryEntry
 from src.mdict.export import build_mdict_artifacts
-from src.mdict.pack import list_keys, mdict_executable
+from src.mdict.pack import list_keys, mdict_cli_command
 
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_pack_three_entry_fixture(tmp_path: Path) -> None:
-    if shutil.which("mdict") is None:
-        pytest.skip("mdict CLI not installed")
-
-    _ = mdict_executable()
+    try:
+        _ = mdict_cli_command()
+    except FileNotFoundError:
+        pytest.skip("mdict-utils not installed")
     entries = [
         WiktionaryEntry(entry="alpha", definitions=["first"]),
         WiktionaryEntry(entry="beta", definitions=["second"]),

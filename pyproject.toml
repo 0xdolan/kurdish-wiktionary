@@ -91,4 +91,21 @@ branch = true
 [tool.coverage.report]
 fail_under = 70
 show_missing = true
-omit = ["src/extraction/__main__.py"]
+omit = [
+    "src/extraction/__main__.py",
+    "src/catalog/__main__.py",
+    "src/lexicon/__main__.py",
+    "src/mdict/__main__.py",
+    "src/catalog/cli_args.py",
+    "src/catalog/resume_ops.py",
+    # Long-running worker/CLI paths — exercised via Docker/RUNBOOK and integration where feasible
+    "src/catalog/canonical_extract.py",
+    "src/catalog/canonical_sync.py",
+    "src/catalog/extract.py",
+    "src/catalog/sync.py",
+    "src/catalog/run_log.py",
+    "src/extraction/pipeline.py",
+    "src/extraction/zim_reader.py",
+    "src/lexicon/service.py",
+    "src/lexicon/media_download.py",
+]

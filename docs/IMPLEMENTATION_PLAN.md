@@ -15,7 +15,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 | **Current phase** | All planned phases complete |
 | **Last completed task** | 8.4 |
 | **Blockers** | None recorded |
-| **Branch / commit** | `master` @ `c8f0d1e` |
+| **Branch / commit** | `main` @ `acef3a7` (update after each landed change) |
 
 ### Phase status overview
 
@@ -214,7 +214,7 @@ curl -s -H 'X-Data-Source: sql' localhost:8000/words/heval | jq .
 - [x] **5.1** `tests/conftest.py` — event loop, test settings, httpx client, db fixture.
 - [x] **5.2** Integration: testcontainers Postgres + migrated schema.
 - [x] **5.3** API integration tests for `/health`, `/words`, error cases.
-- [x] **5.4** `pytest-cov` in `pyproject.toml`; CI threshold (start 70%, target 90%).
+- [x] **5.4** `pytest-cov` in `pyproject.toml`; CI threshold 70% on measured library code (worker/CLI modules omitted; target 90% per spec §11).
 - [x] **5.5** `.github/workflows/ci.yml` — uv sync, ruff, mypy, pytest, docker build.
 - [x] **5.6** Load smoke: document expected latency for ZIM vs SQL single-get.
 

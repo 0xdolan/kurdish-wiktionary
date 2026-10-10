@@ -2,8 +2,8 @@ name: wiktionary-to-mdx
 
 x-app-env: &app-env
   DATABASE_URL: postgresql+asyncpg://wiktionary:wiktionary@postgres:5432/wiktionary
-  ZIM_PATH: /app/zim/wiktionary/wiktionary_en_all_nopic_2026-06.zim
-  ZIM_PATHS: /app/zim/wiktionary/wiktionary_en_all_nopic_2026-06.zim,/app/zim/wiktionary/wiktionary_en_all_maxi_2026-08.zim
+  ZIM_PATH: /app/zim/wiktionary/wiktionary_ku_all_nopic_2026-06.zim
+  ZIM_PATHS: /app/zim/wiktionary/wiktionary_ku_all_nopic_2026-06.zim,/app/zim/wiktionary/wiktionary_ku_all_maxi_2026-08.zim
   DEFAULT_DATA_SOURCE: sql
   LOG_LEVEL: INFO
   RATE_LIMIT_RPM: "120"

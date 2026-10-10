@@ -13,14 +13,14 @@
 | 3 | **T**arget | Use a short-lived branch with a clear prefix (never commit large binaries) |
 | 4 | **F**ormat | Run quality checks when code changed (ruff, mypy, pytest as applicable) |
 | 5 | **L**og | Write commits that explain **why**; use HEREDOC for messages |
-| 6 | **O**rigin | Push feature branches only; protect `main` / `master` |
+| 6 | **O**rigin | Push to `origin`; default branch **`main`** (`git@github.com:0xdolan/wiktionary_to_mdx.git`) |
 | 7 | **W**orkflow | Pull/rebase, push, open PR with `gh`, delete branch after merge |
 
 ---
 
 ## Branch naming (`Target`)
 
-Create branches from updated `main` or `master`:
+Create branches from updated **`main`**:
 
 | Prefix | Use |
 |--------|-----|
@@ -45,7 +45,7 @@ Do **not** commit:
 
 ```bash
 git fetch origin
-git switch main   # or master
+git switch main
 git pull --ff-only origin main
 git switch -c feat/your-topic
 ```
@@ -125,6 +125,26 @@ EOF
 ```
 
 Do **not** push to remote unless the user asked. Do **not** merge PRs unless asked.
+
+---
+
+## Canonical remote and default branch
+
+| Setting | Value |
+|---------|--------|
+| Default branch | `main` |
+| Remote name | `origin` |
+| GitHub URL (SSH) | `git@github.com:0xdolan/wiktionary_to_mdx.git` |
+
+First-time publish from a local repo:
+
+```bash
+git remote add origin git@github.com:0xdolan/wiktionary_to_mdx.git
+git branch -M main
+git push -u origin main
+```
+
+If `origin` already exists, use `git remote set-url origin …` only when the user asks to change the remote.
 
 ---
 

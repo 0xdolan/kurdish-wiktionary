@@ -8,9 +8,10 @@ Kurdish Wiktionary (Wîkîferheng) pipeline: Kiwix **ZIM** ingest, PostgreSQL st
 |----------|----------|
 | [docs/FITFLOW.md](docs/FITFLOW.md) | **Git workflow** — branch, commit, pull, push, PR (FitFlow) |
 | [docs/PROJECT_SPEC.md](docs/PROJECT_SPEC.md) | Architecture, stack, API contract, acceptance criteria |
-| [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Phased tasks (0–7), verification commands, resume checklist |
+| [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Phased tasks (0–8), verification commands, resume checklist |
+| [docs/ACCEPTANCE_AUDIT.md](docs/ACCEPTANCE_AUDIT.md) | Spec/plan compliance audit and canonical project brief |
 | [docs/RUNBOOK.md](docs/RUNBOOK.md) | **Docker stack**, ingest jobs, backups, troubleshooting |
-| [docs/MDX_MDD_GUIDE.md](docs/MDX_MDD_GUIDE.md) | **What MDX/MDD are**, how to build/extract, CLI + planned HTTP API |
+| [docs/MDX_MDD_GUIDE.md](docs/MDX_MDD_GUIDE.md) | **What MDX/MDD are**, how to build/extract, CLI + HTTP API |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Expected latency smoke targets (ZIM vs SQL) |
 | [docs/RAW_TEXT_PIPELINE.md](docs/RAW_TEXT_PIPELINE.md) | **Wordlist in SQL**, raw-text extract, Rich CLI |
 | [docs/DBeaver.md](docs/DBeaver.md) | **DBeaver** connection to Docker Postgres |
@@ -126,4 +127,4 @@ More: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ## Status
 
-Phases **0–7** from [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) are implemented (ingest, API, Docker stack, MDX/MDD export).
+Phases **0–8** from [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) are implemented (ingest, API, Docker stack, MDX/MDD export, raw-text catalog). See [docs/ACCEPTANCE_AUDIT.md](docs/ACCEPTANCE_AUDIT.md) for verification notes.

@@ -1,27 +1,41 @@
 ---
-description: FitFlow git workflow — fetch, branch, inspect, test, commit, push, PR
+description: FitFlow git workflow — GitHub Flow on main, fetch, branch, inspect, test, commit, push, PR
 alwaysApply: true
 ---
 
 # FitFlow (git)
 
-Full guide: [docs/FITFLOW.md](docs/FITFLOW.md). Follow for **commit, push, pull, branch, PR**.
+Full guide: [docs/FITFLOW.md](docs/FITFLOW.md). **Default branch:** `main`. **Remote:** `origin` → `git@github.com:0xdolan/wiktionary_to_mdx.git`.
+
+## Model (GitHub Flow)
+
+- **`main`** is always deployable; integrate via **PR**, not direct commits when collaborating.
+- **Feature branches** off `main`: `feat/`, `fix/`, `docs/`, `chore/`, `test/` — short-lived, one topic.
+- **Rebase or merge** before push to keep history readable; never rewrite shared `main`.
 
 ## FITFLOW steps
 
-1. **Fetch** — `git fetch origin`; before push, `git pull --rebase origin main` (or `master`) on the current branch.
+1. **Fetch** — `git fetch origin`; before push, `git pull --rebase origin main` on the current branch.
 2. **Inspect** — Before every commit: parallel `git status`, `git diff`, `git diff --staged`, `git log -5 --oneline`.
-3. **Target** — Work on `feat/`, `fix/`, `docs/`, `chore/`, `test/` branches; never stage `zim/**/*.zim`, `.venv/`, or secrets.
-4. **Format** — If Python/source changed: `uv run ruff check`, `mypy src`, `pytest` when available.
-5. **Log** — Commit **only when the user asks**. Message via HEREDOC; explain why. Failed hook → fix → **new** commit (no amend unless user rules allow).
-6. **Origin** — Push with `git push -u origin HEAD` on new branches. **Never** force-push `main`/`master`. No push unless user requested.
-7. **Workflow** — PRs via `gh pr create` per user PR rule; no merge/push without explicit ask.
+3. **Target** — Branch from updated `main`; never stage `zim/**/*.zim`, `.venv/`, `build/` artifacts, or secrets.
+4. **Format** — If Python/source changed: `uv run ruff check src tests`, `uv run python -m mypy src`, `uv run python -m pytest`.
+5. **Log** — Commit **only when the user asks**. Imperative subject + why; HEREDOC message. Hook failed → fix → **new** commit.
+6. **Origin** — First push on a branch: `git push -u origin HEAD`. **Never** force-push `main`. Push only when user requested.
+7. **Workflow** — `gh pr create` after push when user wants a PR; do not merge without explicit ask.
+
+## Initial publish (once per clone)
+
+```bash
+git remote add origin git@github.com:0xdolan/wiktionary_to_mdx.git   # skip if origin exists
+git branch -M main
+git push -u origin main
+```
 
 ## Hard bans
 
 - No `git config` changes
 - No `--no-verify` unless user explicitly requests
-- No force-push to default branch; no hard reset on shared history without explicit ask
+- No force-push to `main`; no hard reset on shared history without explicit ask
 
 ## Commit sequence (when user says commit)
 

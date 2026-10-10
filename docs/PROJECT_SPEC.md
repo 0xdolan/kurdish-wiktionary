@@ -229,6 +229,12 @@ See [RAW_TEXT_PIPELINE.md](./RAW_TEXT_PIPELINE.md). Responses use the canonical 
 
 CLI equivalent: `python -m src.catalog` (`stats`, `sync-wordlist`, `extract`).
 
+Extended catalog operations (canonical wordlist, audit, outcome reports) are documented in [CANONICAL_WORDLIST.md](./CANONICAL_WORDLIST.md) and [CATALOG_VERIFICATION.md](./CATALOG_VERIFICATION.md); HTTP routes include `/catalog/canonical/*`, `/catalog/audit`, and `/catalog/outcomes`.
+
+### 9.4 Lexicon inspection API (operator tooling)
+
+Rich HTML/field/media preview and diagnostics for parser tuning — not a public dictionary API. See [LEXICON_API.md](./LEXICON_API.md). Prefix **`/lexicon`**; CLI: `python -m src.lexicon`.
+
 **Cross-cutting:**
 
 - CORS from settings
