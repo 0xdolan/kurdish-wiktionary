@@ -1,6 +1,6 @@
 # FitFlow — Git workflow for this repository
 
-**FitFlow** is the standard way humans and agents **fetch, branch, commit, push, pull, and merge** work in `wikitionary_to_mdx`. Follow it for every git operation unless the user gives explicit override instructions.
+**FitFlow** is the standard way humans and agents **fetch, branch, commit, push, pull, and merge** work in `wiktionary_to_mdx`. Follow it for every git operation unless the user gives explicit override instructions.
 
 ---
 

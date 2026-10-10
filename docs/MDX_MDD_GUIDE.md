@@ -155,7 +155,7 @@ uv add mdict-utils
 Use this while Phase 7 is incomplete or for debugging.
 
 ```bash
-cd /home/dolan/Documents/wikitionary_to_mdx
+cd /home/dolan/Documents/wiktionary_to_mdx
 uv sync
 
 # 1) Ingest ZIM into SQL (when CLI exists)

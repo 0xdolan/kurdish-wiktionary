@@ -1,4 +1,4 @@
-# wikitionary_to_mdx
+# wiktionary_to_mdx
 
 Kurdish Wiktionary (Wîkîferheng) pipeline: Kiwix **ZIM** ingest, PostgreSQL storage, FastAPI query API, and **MDX/MDD** dictionary export via [mdict-utils](https://pypi.org/project/mdict-utils/).
 

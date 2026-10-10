@@ -1,5 +1,5 @@
 [project]
-name = "wikitionary-to-mdx"
+name = "wiktionary-to-mdx"
 version = "0.1.0"
 description = "Kurdish Wiktionary ZIM ingest, API, and MDX/MDD export"
 readme = "README.md"

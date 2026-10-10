@@ -51,7 +51,7 @@ class Settings(BaseSettings):
         description="Catalog CLI checkpoints for --resume",
     )
 
-    app_name: str = "wikitionary-to-mdx"
+    app_name: str = "wiktionary-to-mdx"
     api_prefix: str = ""
 
     @field_validator(

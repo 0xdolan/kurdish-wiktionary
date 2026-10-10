@@ -69,7 +69,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 ### Verification
 
 ```bash
-cd /home/dolan/Documents/wikitionary_to_mdx
+cd /home/dolan/Documents/wiktionary_to_mdx
 uv sync
 uv run ruff check src tests
 uv run mypy src
