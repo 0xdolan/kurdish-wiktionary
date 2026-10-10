@@ -283,7 +283,7 @@ async def export_outcomes_jsonl(
         if not chunk:
             break
         for row in chunk:
-            yield json.dumps(row.__dict__, ensure_ascii=False)
+            yield json.dumps(asdict(row), ensure_ascii=False)
         offset += len(chunk)
         if len(chunk) < batch_size:
             break

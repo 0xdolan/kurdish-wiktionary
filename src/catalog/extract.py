@@ -80,7 +80,9 @@ async def extract_pending_wordlist(
         entry, error = await asyncio.to_thread(_parse_article_sync, zim_path, row.title)
         now = datetime.now(tz=UTC)
         if entry is None:
-            if error and "No definitions" in error:
+            if error and (
+                "No definitions" in error or "Article not found in ZIM" in error
+            ):
                 row.extract_status = WordlistExtractStatus.SKIPPED.value
                 row.last_error = error
                 skipped += 1

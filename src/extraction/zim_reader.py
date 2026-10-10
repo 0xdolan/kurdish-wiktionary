@@ -95,8 +95,15 @@ class ZimReader:
                 if entry.is_redirect:
                     continue
                 title = entry.title
-                if is_wiktionary_article_title(title):
-                    yield title
+                if not is_wiktionary_article_title(title):
+                    continue
+                try:
+                    item = entry.get_item()
+                except RuntimeError:
+                    continue
+                if item.mimetype != "text/html":
+                    continue
+                yield title
 
     def count_article_titles(self) -> int:
         return sum(1 for _ in self.iter_article_titles())

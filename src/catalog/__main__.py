@@ -26,7 +26,7 @@ from src.catalog.checkpoint_validate import (
 from src.catalog.cli_args import add_extract_arguments, add_resume_arguments
 from src.catalog.cli_progress import CatalogJobProgress, ProgressTick
 from src.catalog.extract import extract_pending_wordlist
-from src.catalog.outcomes import build_outcome_report, report_to_json
+from src.catalog.outcomes import build_outcome_report, export_outcomes_jsonl, report_to_json
 from src.catalog.resume_ops import requeue_failed_canonical, requeue_failed_wordlist
 from src.catalog.run_log import ExtractRunLogger
 from src.catalog.stats import fetch_canonical_stats, fetch_catalog_stats, scan_all_zim_stats
@@ -85,6 +85,27 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="Write full JSON report to this path",
+    )
+
+    export_p = sub.add_parser(
+        "export-outcomes",
+        help="Export every skipped/failed lemma to JSONL for triage",
+    )
+    export_p.add_argument(
+        "--scope",
+        choices=["canonical", "wordlist"],
+        default="canonical",
+    )
+    export_p.add_argument(
+        "--status",
+        choices=["both", "skipped", "failed"],
+        default="both",
+    )
+    export_p.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output .jsonl path (one OutcomeRow per line)",
     )
 
     sync_p = sub.add_parser("sync-wordlist", help="Per-ZIM titles into wordlist_titles (legacy)")
@@ -312,6 +333,30 @@ async def _run_report(
             "catalog extract-canonical --retry-failed --resume --all "
             "(or extract for wordlist scope)"
         )
+
+
+async def _run_export_outcomes(
+    *,
+    scope: str,
+    status_filter: str,
+    output_path: Path,
+) -> None:
+    settings = get_settings()
+    init_engine(settings.database_url)
+    session_factory = get_session_factory()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    count = 0
+    async with session_factory() as session:
+        with output_path.open("w", encoding="utf-8") as handle:
+            async for line in export_outcomes_jsonl(
+                session,
+                scope=scope,
+                status_filter=status_filter,
+            ):
+                handle.write(line + "\n")
+                count += 1
+    await dispose_engine()
+    console.print(f"[green]Exported {count:,} outcome rows[/green] → {output_path}")
 
 
 async def _run_audit() -> None:
@@ -799,6 +844,12 @@ async def async_main(args: argparse.Namespace) -> int:
             status_filter=args.status,
             limit=args.limit,
             export_path=args.export,
+        )
+    elif args.command == "export-outcomes":
+        await _run_export_outcomes(
+            scope=args.scope,
+            status_filter=args.status,
+            output_path=args.output,
         )
     elif args.command == "sync-wordlist":
         path = args.zim_path or settings.zim_path

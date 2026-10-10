@@ -24,5 +24,8 @@ def outcome_retry_hint(category: str, status: str) -> str:
     if category == "no_definitions_or_phonetics":
         return "Expected for empty/stub Wiktionary pages; usually do not retry."
     if category == "article_not_found_in_zim":
-        return "Check zim_sources on canonical_lemmas; may need sync-canonical refresh."
+        return (
+            "Usually non-HTML ZIM metadata from an old sync; re-sync after upgrade or "
+            "mark skipped in SQL — retry-failed will not help."
+        )
     return "Inspect last_error in SQL or export jsonl."

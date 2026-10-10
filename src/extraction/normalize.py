@@ -7,7 +7,7 @@ def normalize_entry_key(entry: str) -> str:
 
 
 def is_wiktionary_article_title(title: str) -> bool:
-    if not title or ":" in title:
+    if not title or ":" in title or "/" in title:
         return False
     lowered = title.lower()
     skip_prefixes = (

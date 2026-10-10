@@ -174,7 +174,9 @@ async def extract_pending_canonical(
         )
         now = datetime.now(tz=UTC)
         if entry is None:
-            if error and "No definitions" in error:
+            if error and (
+                "No definitions" in error or "Article not found in ZIM" in error
+            ):
                 row.extract_status = CanonicalExtractStatus.SKIPPED.value
                 row.last_error = error
                 skipped += 1
