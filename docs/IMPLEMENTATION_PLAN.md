@@ -15,7 +15,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 | **Current phase** | All planned phases complete |
 | **Last completed task** | 8.4 |
 | **Blockers** | None recorded |
-| **Branch / commit** | `master` @ `76147b8` |
+| **Branch / commit** | `master` @ `c8f0d1e` |
 
 ### Phase status overview
 
