@@ -11,7 +11,7 @@ from src.catalog.cli_progress import ProgressTick
 from src.catalog.outcomes import LemmaOutcome, lemma_outcome_from_row
 from src.core.models import WiktionaryEntry
 from src.extraction.html_parser import parse_wiktionary_html
-from src.extraction.zim_reader import ZimReader
+from src.extraction.zim_reader import get_zim_reader
 from src.repository.db.models import WordlistExtractStatus, WordlistTitleModel
 from src.repository.db.upsert import upsert_entry
 
@@ -29,7 +29,7 @@ def _parse_article_sync(
     zim_path: Path,
     title: str,
 ) -> tuple[WiktionaryEntry | None, str | None]:
-    reader = ZimReader(zim_path)
+    reader = get_zim_reader(zim_path)
     meta = reader.metadata()
     metadata_base = {
         "zim_uuid": meta.uuid,

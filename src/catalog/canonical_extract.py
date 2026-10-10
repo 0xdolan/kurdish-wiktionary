@@ -13,7 +13,7 @@ from src.catalog.outcomes import LemmaOutcome, lemma_outcome_from_row
 from src.catalog.zim_paths import sort_zim_paths_for_extract
 from src.core.models import WiktionaryEntry
 from src.extraction.parse_page import ParsedPage, parse_wiktionary_page
-from src.extraction.zim_reader import ZimReader
+from src.extraction.zim_reader import get_zim_reader
 from src.repository.db.models.canonical import CanonicalExtractStatus, CanonicalLemmaModel
 from src.repository.db.upsert import upsert_entry
 from src.repository.db.upsert_assets import replace_entry_media, upsert_entry_html
@@ -32,7 +32,7 @@ def _parse_from_zim(
     zim_path: Path,
     title: str,
 ) -> tuple[WiktionaryEntry | None, str | None, ParsedPage | None, list[ParsedPage]]:
-    reader = ZimReader(zim_path)
+    reader = get_zim_reader(zim_path)
     meta = reader.metadata()
     metadata_base = {
         "zim_uuid": meta.uuid,

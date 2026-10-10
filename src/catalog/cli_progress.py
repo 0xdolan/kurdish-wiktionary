@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import time
 from dataclasses import dataclass, field
 
 from rich.console import Console
@@ -42,6 +43,7 @@ class CatalogJobProgress:
     job_title: str
     _progress: Progress | None = field(default=None, init=False, repr=False)
     _task_id: TaskID | None = field(default=None, init=False, repr=False)
+    _last_tick_monotonic: float = field(default=0.0, init=False, repr=False)
     run_totals: BatchRunTotals = field(default_factory=BatchRunTotals)
 
     def __enter__(self) -> CatalogJobProgress:
@@ -59,7 +61,7 @@ class CatalogJobProgress:
             ),
             TimeRemainingColumn(),
             console=self.console,
-            refresh_per_second=8,
+            refresh_per_second=4,
             transient=False,
         )
         self._progress.start()
@@ -105,6 +107,14 @@ class CatalogJobProgress:
 
     def on_tick(self, tick: ProgressTick) -> None:
         assert self._progress is not None and self._task_id is not None
+        now = time.monotonic()
+        if (
+            tick.done < tick.total
+            and tick.done % 5 != 0
+            and (now - self._last_tick_monotonic) < 0.35
+        ):
+            return
+        self._last_tick_monotonic = now
         self._progress.update(
             self._task_id,
             total=max(1, tick.total),

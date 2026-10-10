@@ -6,7 +6,7 @@ from selectolax.lexbor import LexborHTMLParser, LexborNode
 from src.core.models import WiktionaryEntry
 from src.extraction.text_clean import decode_plain_text
 
-LAYOUT_VERSION = "ku-mw-2026-v3"
+LAYOUT_VERSION = "ku-mw-2026-v4"
 
 _POS_HEADINGS = frozenset(
     {
@@ -38,6 +38,11 @@ _SYNONYM_KEYWORDS = ("beranber", "hevwate", "hevmane", "synonym")
 _ANTONYM_KEYWORDS = ("berberev", "dijmane", "zîv", "ziv", "antonym")
 _DERIVED_KEYWORDS = ("jê", "jêder", "derived")
 _PRONUNCIATION_HEADINGS = ("bilêvkirin", "bilevkirin", "telaffuz")
+_INFLECTION_KEYWORDS = ("tewandin", "inflection")
+_STUB_DEFINITION = re.compile(
+    r"^Nimûneyekê lê zêde bike|^Nimûneyekê lê zêde bike\s*\[",
+    re.IGNORECASE,
+)
 
 _INLINE_SYNONYM = re.compile(
     r"(?i)\b(?:hevmane|beranber(?:ek)?|hevwate)\s*:\s*([^.\n\[]+)",
@@ -62,7 +67,9 @@ def _heading_label(node: LexborNode) -> str:
         return ""
     span = node.css_first("span")
     if span is not None:
-        return _clean_text(span)
+        from_span = _clean_text(span)
+        if from_span:
+            return from_span
     return _clean_text(node)
 
 
@@ -80,11 +87,26 @@ def _unique_strings(values: list[str]) -> list[str]:
     return out
 
 
+def _is_stub_definition(text: str) -> bool:
+    stripped = text.strip()
+    if len(stripped) <= 1:
+        return True
+    if _STUB_DEFINITION.match(stripped):
+        return True
+    return stripped in {"[ biguhêre ]", "biguhêre"}
+
+
+def _clean_definition(text: str) -> str:
+    cleaned = _NIMUNE_TRAIL.sub("", text).strip()
+    cleaned = re.sub(r"\s*\[.*?\]\s*$", "", cleaned).strip()
+    return decode_plain_text(cleaned)
+
+
 def _collect_list_items(root: LexborNode) -> list[str]:
     items: list[str] = []
     for li in root.css("li"):
-        text = _clean_text(li)
-        if text and len(text) > 1:
+        text = _clean_definition(_clean_text(li))
+        if text and not _is_stub_definition(text):
             items.append(text)
     return items
 
@@ -237,10 +259,11 @@ def _gather_section_fields(root: LexborNode) -> tuple[dict[str, list[str]], dict
         if not label:
             continue
         bucket = _section_bucket(label)
-        if bucket not in buckets:
+        if bucket not in buckets and bucket not in ("etymology", "inflection"):
             continue
         items, html_frag = _content_after_heading(heading)
-        buckets[bucket].extend(items)
+        if bucket in buckets:
+            buckets[bucket].extend(items)
         key = _normalize_heading(label)
         if html_frag:
             section_html[key] = html_frag
@@ -278,9 +301,11 @@ def _extract_pronunciations(tree: LexborHTMLParser) -> list[str]:
 
 def _extract_examples(tree: LexborHTMLParser) -> list[str]:
     examples: list[str] = []
-    for node in tree.css(".benimune, .example, blockquote"):
+    for node in tree.css(
+        ".benimune, .example, blockquote, .h-usage-example, .e-example, .e-quotation"
+    ):
         text = _clean_text(node)
-        if text and "Nimûneyekê lê zêde bike" not in text:
+        if text and not _is_stub_definition(text) and "Nimûneyekê lê zêde bike" not in text:
             examples.append(text)
     return examples
 
@@ -297,11 +322,25 @@ def _section_bucket(heading: str) -> str:
         return "antonyms"
     if norm in _POS_HEADINGS or any(norm.startswith(pos) for pos in _POS_HEADINGS):
         return "pos"
-    if any(k in norm for k in _DERIVED_KEYWORDS) and norm in {"jê", "je"}:
+    if norm in {"jê", "je"}:
         return "derived_terms"
+    if any(k in norm for k in _INFLECTION_KEYWORDS):
+        return "inflection"
     if norm.startswith("navd") or norm.startswith("peyv"):
         return "pos"
     return "other"
+
+
+def _extract_etymology_text(heading: LexborNode) -> str:
+    chunks: list[str] = []
+    sibling = _next_sibling_node(_heading_walk_start(heading))
+    while sibling is not None and not _is_section_boundary(sibling):
+        if sibling.tag in {"p", "dl"}:
+            text = _clean_text(sibling)
+            if text:
+                chunks.append(text)
+        sibling = _next_sibling_node(sibling)
+    return " ".join(chunks)
 
 
 def parse_wiktionary_html(
@@ -336,22 +375,15 @@ def parse_wiktionary_html(
             if bucket == "pos" and label not in part_of_speech:
                 part_of_speech.append(label)
 
-        for heading in root.css("h3"):
+        for heading in root.css("h2, h3, h4"):
+            if etymology is not None:
+                break
             label = _heading_label(heading)
-            if not label or etymology is not None:
+            if not label or _section_bucket(label) != "etymology":
                 continue
-            if _section_bucket(label) != "etymology":
-                continue
-            sibling = heading.next
-            chunks: list[str] = []
-            while sibling is not None and sibling.tag not in {"h2", "h3", "h4"}:
-                if sibling.tag in {"p", "dl"}:
-                    text = _clean_text(sibling)
-                    if text:
-                        chunks.append(text)
-                sibling = sibling.next
-            if chunks:
-                etymology = " ".join(chunks)
+            text = _extract_etymology_text(heading)
+            if text:
+                etymology = text
 
         for ol in root.css("ol"):
             definitions.extend(_collect_list_items(ol))

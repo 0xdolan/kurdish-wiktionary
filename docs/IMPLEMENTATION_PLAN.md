@@ -15,7 +15,7 @@ Use this document as the **source of truth for progress**. Update checkboxes and
 | **Current phase** | All planned phases complete |
 | **Last completed task** | 8.4 |
 | **Blockers** | None recorded |
-| **Branch / commit** | feat/phase-1-extraction (local) |
+| **Branch / commit** | `master` (merge feat/phase-1-extraction; update hash after commit) |
 
 ### Phase status overview
 

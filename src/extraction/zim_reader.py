@@ -119,3 +119,20 @@ class ZimReader:
                     continue
                 html = item.content.tobytes().decode("utf-8", errors="replace")
                 yield ZimArticle(title=title, path=entry.path, html=html)
+
+
+_reader_cache: dict[str, ZimReader] = {}
+
+
+def get_zim_reader(zim_path: Path) -> ZimReader:
+    """Reuse open archives across batch extract (avoids repeated libzim init)."""
+    key = str(zim_path.resolve())
+    reader = _reader_cache.get(key)
+    if reader is None:
+        reader = ZimReader(zim_path)
+        _reader_cache[key] = reader
+    return reader
+
+
+def clear_zim_reader_cache() -> None:
+    _reader_cache.clear()

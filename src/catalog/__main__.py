@@ -33,7 +33,8 @@ from src.core.logging import configure_logging
 from src.extraction.zim_reader import ZimReader
 from src.repository.db.base import dispose_engine, get_session_factory, init_engine
 
-console = Console()
+# Progress on stdout; stderr is filtered during libzim lookups (see stream_filter).
+console = Console(stderr=False)
 
 
 class _ExtractBatchRunner(Protocol):

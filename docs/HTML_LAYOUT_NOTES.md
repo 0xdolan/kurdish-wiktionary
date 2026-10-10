@@ -9,7 +9,7 @@
 - Language variety blocks use **`h2`** with label in `span` (e.g. **Kurmancî**, **Soranî**, **Afrîkansî**).
 - Subsections use **`h3`** / **`h4`** (pronunciation, POS, etymology, derived forms).
 
-## Fields mapped by the parser (`layout_version: ku-mw-2026-v3`)
+## Fields mapped by the parser (`layout_version: ku-mw-2026-v4`)
 
 | Field | DOM hints |
 |-------|-----------|
@@ -17,10 +17,13 @@
 | `definitions` | Items in `ol > li` under the article body |
 | `phonetic_transcriptions` | `span.IPA` |
 | `pronunciations` | Links to `.mp3`, `.wav`, `.ogg`, `.opus` (incl. Phonos buttons) |
-| `examples` | `.benimune`, `blockquote`, `.example` (stub “add example” lines filtered) |
-| `etymology` | First `h3` whose title matches etymology keywords; following `p` / `dl` text |
+| `examples` | `.benimune`, `.h-usage-example`, `.e-example`, `blockquote`, `.example` (stub “add example” lines filtered) |
+| `etymology` | First `h2`/`h3`/`h4` etymology section; following `p` / `dl` text (Ku often uses **h4 Etîmolojî**) |
 | `synonyms` / `antonyms` | `h3`/`h4` sections (**Hevmane**, **Dijmane**, Beranber, …) after `div.mw-heading` wrappers; inline `span.nyms` / **Hevmane:** in `dd` |
-| `derived_terms` | Section headings (Jê, …) |
+| `derived_terms` | **Jê** (`h4`) list links |
+| `metadata.section_html` | Raw HTML fragments per normalized heading key (incl. **tewandin**, **etimoloji**, **jê** when present) |
+
+**v4:** Headings with an empty leading `span` (anchor-only) now use full `h3`/`h4` text so **Navdêr**, **Jê**, etc. parse; definition lines strip trailing “Nimûneyekê … [ biguhêre ]”.
 
 ## Variation / gaps
 
