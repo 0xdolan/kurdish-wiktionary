@@ -5,7 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
-CLEAR_CATALOG_STATE="${CLEAR_CATALOG_STATE:-0}"
+# Default: wipe catalog checkpoints when Postgres volume is destroyed (avoid stale resume).
+CLEAR_CATALOG_STATE="${CLEAR_CATALOG_STATE:-1}"
 
 echo "Stopping services and removing volumes (postgres_data)…"
 docker compose --profile ingest --profile catalog down -v --remove-orphans

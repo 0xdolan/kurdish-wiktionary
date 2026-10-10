@@ -27,14 +27,15 @@ docker compose --profile catalog run --rm --build catalog stats
 docker compose --profile catalog run --rm --build catalog extract-canonical --limit 5000
 
 # 4b. Extract **entire** canonical wordlist (~1M lemmas; many hours — use tmux/screen)
+# After fresh Postgres: use --no-resume (see docs/FRESH_REBUILD.md)
 docker compose --profile catalog run --rm --build catalog \
-  extract-canonical --all --limit 10000
+  extract-canonical --all --limit 10000 --no-resume
 
-# 4c. **Resume** after Ctrl+C (checkpoints under build/catalog/state; default --resume)
+# 4c. **Resume** after Ctrl+C on the **same** database (checkpoint under build/catalog/state)
 docker compose --profile catalog run --rm --build catalog \
   extract-canonical --all --limit 10000 --resume
 
-# Fresh run (ignore checkpoint): add --no-resume
+# Fresh run after DB wipe: --no-resume (or ./scripts/clear-catalog-state.sh)
 # Retry previously failed lemmas: add --retry-failed
 
 # 5. Audit + skipped/failed report (see docs/CATALOG_VERIFICATION.md)

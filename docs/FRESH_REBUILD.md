@@ -99,9 +99,16 @@ docker compose --profile catalog run --rm catalog stats
 **This is long-running (~1M lemmas; use tmux/screen).**
 
 ```bash
+# After a fresh Postgres volume: start clean (do NOT pass --resume)
+docker compose --profile catalog run --rm --build catalog \
+  extract-canonical --all --limit 10000 --no-resume
+
+# After interrupt/Ctrl+C on the same database: continue
 docker compose --profile catalog run --rm --build catalog \
   extract-canonical --all --limit 10000 --resume
 ```
+
+Stale checkpoints on disk are **auto-discarded** when SQL progress no longer matches, but always use **`--no-resume`** right after `./scripts/fresh-database.sh` or `stack-teardown`.
 
 Flags:
 
@@ -109,8 +116,8 @@ Flags:
 |------|---------|
 | `--all` | Process entire canonical wordlist |
 | `--limit 10000` | Batch size per run (repeat until stats show pending ≈ 0) |
-| `--resume` | Continue from checkpoint in `build/catalog/state` |
-| `--no-resume` | Ignore checkpoint (fresh extract pass) |
+| `--resume` | Continue from checkpoint (same database) |
+| `--no-resume` | Ignore/delete checkpoint (required after fresh DB rebuild) |
 | `--retry-failed` | Re-queue rows in `failed` status only |
 
 Monitor:
@@ -179,7 +186,7 @@ CLEAR_CATALOG_STATE=1 ./scripts/stack-teardown.sh
 ./scripts/stack-rebuild.sh
 
 docker compose --profile catalog run --rm --build catalog sync-canonical
-docker compose --profile catalog run --rm --build catalog extract-canonical --all --limit 10000 --resume
+docker compose --profile catalog run --rm --build catalog extract-canonical --all --limit 10000 --no-resume
 
 docker compose --profile catalog run --rm catalog stats
 docker compose --profile catalog run --rm catalog audit

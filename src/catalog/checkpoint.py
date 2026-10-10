@@ -31,6 +31,7 @@ class CatalogCheckpoint:
     batch_index: int = 0
     upsert_offset: int = 0
     pending_at_start: int | None = None
+    db_corpus_total: int | None = None
     totals: BatchRunTotals = field(default_factory=BatchRunTotals)
     updated_at: str = ""
 
@@ -59,6 +60,7 @@ class CatalogCheckpoint:
             batch_index=int(data.get("batch_index", 0)),
             upsert_offset=int(data.get("upsert_offset", 0)),
             pending_at_start=data.get("pending_at_start"),
+            db_corpus_total=data.get("db_corpus_total"),
             totals=totals,
             updated_at=str(data.get("updated_at", "")),
         )

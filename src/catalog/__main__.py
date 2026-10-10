@@ -19,6 +19,10 @@ from src.catalog.checkpoint import (
     load_checkpoint,
     save_checkpoint,
 )
+from src.catalog.checkpoint_validate import (
+    extract_checkpoint_stale_reason,
+    sync_checkpoint_stale_reason,
+)
 from src.catalog.cli_args import add_extract_arguments, add_resume_arguments
 from src.catalog.cli_progress import CatalogJobProgress, ProgressTick
 from src.catalog.extract import extract_pending_wordlist
@@ -173,6 +177,40 @@ def _persist_checkpoint(state_dir: Path, checkpoint: CatalogCheckpoint) -> None:
     save_checkpoint(state_dir, checkpoint)
 
 
+def _fresh_checkpoint(
+    *,
+    command: str,
+    fingerprint: str,
+    limit: int,
+    run_all: bool,
+) -> CatalogCheckpoint:
+    return CatalogCheckpoint(
+        command=command,
+        fingerprint=fingerprint,
+        limit=limit,
+        run_all=run_all,
+    )
+
+
+def _discard_checkpoint_with_message(
+    *,
+    state_dir: Path,
+    command: str,
+    fingerprint: str,
+    limit: int,
+    run_all: bool,
+    reason: str,
+) -> CatalogCheckpoint:
+    console.print(f"[yellow]Checkpoint discarded[/yellow]: {reason}")
+    clear_checkpoint(state_dir, command, fingerprint)
+    return _fresh_checkpoint(
+        command=command,
+        fingerprint=fingerprint,
+        limit=limit,
+        run_all=run_all,
+    )
+
+
 async def _run_stats() -> None:
     settings = get_settings()
     zim_paths = resolve_zim_paths(settings)
@@ -309,6 +347,19 @@ async def _run_sync(zim_path: Path, *, resume: bool) -> None:
         run_all=False,
         resume=resume,
     )
+    async with session_factory() as session:
+        legacy = await fetch_catalog_stats(session, zim_path)
+        stale = sync_checkpoint_stale_reason(checkpoint, db_row_count=legacy.wordlist_total)
+        if stale:
+            checkpoint = _discard_checkpoint_with_message(
+                state_dir=settings.catalog_state_dir,
+                command="sync-wordlist",
+                fingerprint=fingerprint,
+                limit=0,
+                run_all=False,
+                reason=stale,
+            )
+        checkpoint.db_corpus_total = legacy.wordlist_total
 
     with CatalogJobProgress(console, "Sync wordlist") as job:
         job.run_totals = checkpoint.totals
@@ -366,6 +417,22 @@ async def _run_sync_canonical(zim_paths: list[Path], *, resume: bool) -> None:
         run_all=False,
         resume=resume,
     )
+    async with session_factory() as session:
+        canonical = await fetch_canonical_stats(
+            session,
+            configured_zim_count=len(zim_paths),
+        )
+        stale = sync_checkpoint_stale_reason(checkpoint, db_row_count=canonical.total)
+        if stale:
+            checkpoint = _discard_checkpoint_with_message(
+                state_dir=settings.catalog_state_dir,
+                command="sync-canonical",
+                fingerprint=fingerprint,
+                limit=0,
+                run_all=False,
+                reason=stale,
+            )
+        checkpoint.db_corpus_total = canonical.total
 
     with CatalogJobProgress(console, "Sync canonical") as job:
         job.run_totals = checkpoint.totals
@@ -433,6 +500,41 @@ async def _run_extract_loop(
     )
     batch_index = checkpoint.batch_index
     retried_failed = False
+    is_canonical = command == "extract-canonical"
+
+    async with session_factory() as session:
+        if is_canonical:
+            zim_paths = resolve_zim_paths(settings)
+            canonical_stats = await fetch_canonical_stats(
+                session,
+                configured_zim_count=len(zim_paths),
+            )
+            stale = extract_checkpoint_stale_reason(
+                checkpoint,
+                db=canonical_stats,
+                is_canonical=True,
+            )
+            corpus_total = canonical_stats.total
+        else:
+            legacy_stats = await fetch_catalog_stats(session, settings.zim_path)
+            stale = extract_checkpoint_stale_reason(
+                checkpoint,
+                db=legacy_stats,
+                is_canonical=False,
+            )
+            corpus_total = legacy_stats.wordlist_total
+        if stale:
+            checkpoint = _discard_checkpoint_with_message(
+                state_dir=settings.catalog_state_dir,
+                command=command,
+                fingerprint=fingerprint,
+                limit=limit,
+                run_all=run_all,
+                reason=stale,
+            )
+            batch_index = checkpoint.batch_index
+        if checkpoint.db_corpus_total is None:
+            checkpoint.db_corpus_total = corpus_total
 
     async with session_factory() as session:
         if retry_failed and not retried_failed:
