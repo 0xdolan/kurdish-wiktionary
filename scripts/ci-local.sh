@@ -12,10 +12,10 @@ echo "==> ci-local: ruff"
 uv run ruff check src tests
 
 echo "==> ci-local: mypy"
-uv run mypy src
+uv run python -m mypy src
 
 echo "==> ci-local: pytest + coverage (fail_under from pyproject.toml)"
-uv run pytest --cov=src --cov-report=term-missing --cov-report=xml -v
+uv run python -m pytest --cov=src --cov-report=term-missing --cov-report=xml -v
 
 echo "==> ci-local: docker build (api, worker, catalog)"
 docker build -f docker/api.Dockerfile -t wiktionary-api:ci-local .
