@@ -11,7 +11,7 @@
 | 1 | **F**etch | Sync with remote before starting work and again before push |
 | 2 | **I**nspect | Review `status`, `diff`, and recent `log` before staging or committing |
 | 3 | **T**arget | Use a short-lived branch with a clear prefix (never commit large binaries) |
-| 4 | **F**ormat | Run quality checks when code changed (ruff, mypy, pytest as applicable) |
+| 4 | **F**ormat | Run **`./scripts/ci-local.sh`** before push (mirrors GitHub Actions; pre-push hook enforces) |
 | 5 | **L**og | Write commits that explain **why**; use HEREDOC for messages |
 | 6 | **O**rigin | Push to `origin`; default branch **`main`** (`git@github.com:0xdolan/wiktionary_to_mdx.git`) |
 | 7 | **W**orkflow | Pull/rebase, push, open PR with `gh`, delete branch after merge |
@@ -60,16 +60,29 @@ Use `git pull --rebase origin main` on long-lived branches if the team prefers a
 
 ### Before commit (`Inspect` + `Format`)
 
-When Python/source changed:
+**Before every push** (required — same as `.github/workflows/ci.yml`):
+
+```bash
+chmod +x scripts/*.sh
+./scripts/ci-local.sh
+```
+
+Install once so failed pushes are blocked automatically:
+
+```bash
+./scripts/install-git-hooks.sh
+```
+
+During development (faster loop):
 
 ```bash
 uv sync
 uv run ruff check src tests
-uv run mypy src
-uv run pytest
+uv run python -m mypy src
+uv run python -m pytest
 ```
 
-When only docs changed, quality commands are optional unless the user wants them.
+When only docs/scripts changed, still run **`ci-local.sh`** before push if Docker is available; at minimum run ruff/mypy/pytest when Python changed.
 
 **Inspect** (required for every commit):
 

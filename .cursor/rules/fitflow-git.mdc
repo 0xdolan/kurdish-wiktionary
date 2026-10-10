@@ -18,7 +18,7 @@ Full guide: [docs/FITFLOW.md](docs/FITFLOW.md). **Default branch:** `main`. **Re
 1. **Fetch** — `git fetch origin`; before push, `git pull --rebase origin main` on the current branch.
 2. **Inspect** — Before every commit: parallel `git status`, `git diff`, `git diff --staged`, `git log -5 --oneline`.
 3. **Target** — Branch from updated `main`; never stage `zim/**/*.zim`, `.venv/`, `build/` artifacts, or secrets.
-4. **Format** — If Python/source changed: `uv run ruff check src tests`, `uv run python -m mypy src`, `uv run python -m pytest`.
+4. **Format** — Run **`./scripts/ci-local.sh`** before every push (matches GitHub CI). Quick edit loop: ruff/mypy/pytest; full gate: ci-local.
 5. **Log** — Commit **only when the user asks**. Imperative subject + why; HEREDOC message. Hook failed → fix → **new** commit.
 6. **Origin** — First push on a branch: `git push -u origin HEAD`. **Never** force-push `main`. Push only when user requested.
 7. **Workflow** — `gh pr create` after push when user wants a PR; do not merge without explicit ask.

@@ -18,3 +18,8 @@ coverage.xml
 
 # Kiwix archives (download locally; see README)
 zim/**/*.zim
+
+# Database backups (see scripts/backup-postgres.sh)
+backups/postgres/*.dump
+backups/postgres/*.sql
+backups/postgres/*.sql.gz

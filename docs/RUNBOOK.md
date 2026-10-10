@@ -45,9 +45,19 @@ docker compose --profile ingest run --rm worker \
 
 Omit `--max-entries` for a full pass (long-running; scale worker replicas or run on a batch host).
 
-## Backups
+## Backups and fresh rebuild
 
-Postgres data lives in the Docker volume `postgres_data`:
+Postgres data lives in the Docker volume `postgres_data`.
+
+**Backup + wipe + rebuild + full ZIM reload:** follow **[FRESH_REBUILD.md](./FRESH_REBUILD.md)** (scripts under `scripts/`).
+
+Quick backup:
+
+```bash
+./scripts/backup-postgres.sh
+```
+
+Manual dump:
 
 ```bash
 docker compose exec postgres pg_dump -U wiktionary -d wiktionary -Fc > backup.dump

@@ -1,0 +1,33 @@
+---
+description: Block push until local CI passes (mirrors GitHub Actions)
+alwaysApply: true
+---
+
+# Local CI gate (required before push)
+
+GitHub CI is defined in `.github/workflows/ci.yml`. **Do not push** if local CI fails.
+
+## Required command (same gates as GitHub)
+
+```bash
+./scripts/ci-local.sh
+```
+
+Runs: `uv sync --frozen`, ruff, mypy, pytest+coverage, Docker builds (api, worker, catalog).
+
+## Pre-push hook
+
+After clone or when hooks are missing:
+
+```bash
+chmod +x scripts/*.sh scripts/git-hooks/*
+./scripts/install-git-hooks.sh
+```
+
+The **pre-push** hook runs `ci-local.sh` and **rejects the push** on any failure.
+
+## Agent rules
+
+- Before `git push`, run `./scripts/ci-local.sh` and fix all errors.
+- **Never** suggest `git push --no-verify` unless the user explicitly requests bypassing hooks.
+- **Never** push broken code to let GitHub fail; local CI must pass first.

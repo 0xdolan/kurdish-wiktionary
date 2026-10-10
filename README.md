@@ -11,6 +11,7 @@ Kurdish Wiktionary (Wîkîferheng) pipeline: Kiwix **ZIM** ingest, PostgreSQL st
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Phased tasks (0–8), verification commands, resume checklist |
 | [docs/ACCEPTANCE_AUDIT.md](docs/ACCEPTANCE_AUDIT.md) | Spec/plan compliance audit and canonical project brief |
 | [docs/RUNBOOK.md](docs/RUNBOOK.md) | **Docker stack**, ingest jobs, backups, troubleshooting |
+| [docs/FRESH_REBUILD.md](docs/FRESH_REBUILD.md) | **Backup SQL**, reset Postgres volume, rebuild, full ZIM→SQL A→Z |
 | [docs/MDX_MDD_GUIDE.md](docs/MDX_MDD_GUIDE.md) | **What MDX/MDD are**, how to build/extract, CLI + HTTP API |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Expected latency smoke targets (ZIM vs SQL) |
 | [docs/RAW_TEXT_PIPELINE.md](docs/RAW_TEXT_PIPELINE.md) | **Wordlist in SQL**, raw-text extract, Rich CLI |
@@ -112,7 +113,14 @@ uv run python -m src.extraction \
   --ingest --max-entries 500
 ```
 
-CI runs ruff, mypy, pytest (Testcontainers Postgres), and builds `docker/api.Dockerfile` on push/PR.
+**Local CI (run before push):**
+
+```bash
+chmod +x scripts/*.sh && ./scripts/install-git-hooks.sh   # once
+./scripts/ci-local.sh
+```
+
+GitHub CI runs the same gates on push/PR (ruff, mypy, pytest+coverage, Docker builds). The pre-push hook blocks push when local CI fails.
 
 ## Troubleshooting
 
