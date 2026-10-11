@@ -105,7 +105,7 @@ uv run python -m src.lexicon media-download-all --confirm --limit 500  # single 
 uv run python -m src.lexicon media-download-all --confirm --all --force  # re-fetch everything
 ```
 
-With `--confirm`, each run writes a failure JSONL under `build/catalog/state/runs/media-download-<timestamp>/failures.jsonl` (Wikimedia 429/5xx are retried with backoff). Existing files are reused when on-disk size matches the ZIM payload or remote `Content-Length`.
+With `--confirm`, each run writes a failure JSONL under `build/media/state/runs/media-download-<timestamp>/failures.jsonl` (override with `MEDIA_DOWNLOAD_STATE_DIR`; Wikimedia 429/5xx are retried with backoff). Existing files are reused when on-disk size matches the ZIM payload or remote `Content-Length`.
 
 ```bash
 uv run python -m src.lexicon sparse --mode missing_relations --limit 50

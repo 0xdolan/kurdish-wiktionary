@@ -180,7 +180,7 @@ async def async_main(args: argparse.Namespace) -> int:
                 return 2
             if args.confirm:
                 console = Console()
-                run_logger = MediaDownloadRunLogger(settings.catalog_state_dir)
+                run_logger = MediaDownloadRunLogger(settings.media_download_state_dir)
                 with CatalogJobProgress(console, "Media download") as job:
                     hooks = lexicon_service.build_media_download_rich_hooks(
                         job,
