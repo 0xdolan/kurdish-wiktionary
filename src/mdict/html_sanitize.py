@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+from selectolax.lexbor import LexborHTMLParser
+
 _SCRIPT_STYLE = re.compile(r"<script\b[^>]*>.*?</script>", re.I | re.DOTALL)
 _STYLE = re.compile(r"<style\b[^>]*>.*?</style>", re.I | re.DOTALL)
 _ONCLICK = re.compile(r"\s+on\w+\s*=\s*[\"'][^\"']*[\"']", re.I)
@@ -286,59 +288,100 @@ def _prepare_citations(html: str) -> str:
     return out
 
 
-def _add_tr_class(tr_attrs: str, extra: str) -> str:
-    if re.search(r'\bclass="', tr_attrs, flags=re.I):
-        return re.sub(
-            r'class="([^"]*)"',
-            lambda m: f'class="{_normalize_class_list(m.group(1), extra=extra)}"',
-            tr_attrs,
-            count=1,
-            flags=re.I,
+_GROUP_CLASS_RE = re.compile(r"\bwikt-inflection-group-\w+\b")
+
+
+def _clean_inflection_row_html(row_html: str) -> str:
+    return _GROUP_CLASS_RE.sub("", row_html)
+
+
+def _inflection_row_groups(table_html: str) -> list[list[str]] | None:
+    tree = LexborHTMLParser(table_html)
+    table = tree.css_first("table")
+    if not table:
+        return None
+    tbody = table.css_first("tbody")
+    tr_nodes = tbody.css("tr") if tbody else table.css("tr")
+    if not tr_nodes:
+        return None
+
+    groups: list[list[str]] = []
+    current: list[str] = []
+    for tr in tr_nodes:
+        is_outer = tr.css_first("th.outer") is not None
+        if is_outer and current:
+            groups.append(current)
+            current = [_clean_inflection_row_html(tr.html)]
+        else:
+            current.append(_clean_inflection_row_html(tr.html))
+    if current:
+        groups.append(current)
+    return groups if len(groups) > 1 else None
+
+
+def _split_inflection_table_html(table_html: str, *, wrapper_class: str | None = None) -> str | None:
+    groups = _inflection_row_groups(table_html)
+    if not groups:
+        return None
+
+    tree = LexborHTMLParser(table_html)
+    table = tree.css_first("table")
+    assert table is not None
+    caption = table.css_first("caption")
+    caption_html = caption.html if caption else ""
+    raw_class = table.attributes.get("class", "inflection-table")
+    table_class = _normalize_class_list(raw_class, extra="wikt-inflection-table")
+
+    first_wrap_class = "wikt-inflection-wrap wikt-inflection-wrap--first"
+    if wrapper_class:
+        first_wrap_class = _normalize_class_list(wrapper_class, extra="wikt-inflection-wrap--first")
+
+    parts: list[str] = []
+    for index, rows in enumerate(groups):
+        wrap_class = first_wrap_class if index == 0 else "wikt-inflection-wrap wikt-inflection-wrap--part"
+        cap = caption_html if index == 0 else ""
+        body = "".join(rows)
+        parts.append(
+            f'<div class="{wrap_class}">'
+            f'<table class="{table_class}">'
+            f"{cap}<tbody>{body}</tbody></table></div>"
         )
-    return f'{tr_attrs} class="{extra}"'
+    return f'<div class="wikt-inflection-stack">{"".join(parts)}</div>'
 
 
-def _mark_inflection_outer_groups(html: str) -> str:
-    """Mark second+ gender/morphology blocks in one inflection table for CSS separation."""
+def _split_inflection_wrappers(html: str) -> str:
+    """Split one inflection table into stacked tables at each ``th.outer`` block."""
     if "inflection-table" not in html or "outer" not in html:
         return html
-    outer_row = re.compile(
-        r"<tr\b([^>]*)>(?=(?:(?!</tr>).)*?<th\b[^>]*\bclass=\"[^\"]*\bouter\b)",
+
+    wrap_re = re.compile(
+        r"<div\b(?=[^>]*\bwikt-inflection-wrap\b)([^>]*)>\s*(<table\b.*?</table>)\s*</div>",
         flags=re.I | re.DOTALL,
     )
-    index = 0
 
-    def mark_start(match: re.Match[str]) -> str:
-        nonlocal index
-        index += 1
-        attrs = match.group(1)
-        if index > 1:
-            attrs = _add_tr_class(attrs, "wikt-inflection-group-start")
-        return f"<tr{attrs}>"
+    def replace_wrapped(match: re.Match[str]) -> str:
+        div_attrs = match.group(1)
+        table_html = match.group(2)
+        class_match = re.search(r'\bclass="([^"]*)"', div_attrs, flags=re.I)
+        wrapper_class = class_match.group(1) if class_match else None
+        split = _split_inflection_table_html(table_html, wrapper_class=wrapper_class)
+        return split if split else match.group(0)
 
-    out = outer_row.sub(mark_start, html)
-    if index < 2:
+    out = wrap_re.sub(replace_wrapped, html)
+    if "wikt-inflection-stack" in out:
         return out
 
-    def mark_end(match: re.Match[str]) -> str:
-        prev_row = match.group(1)
-        next_tr = match.group(2)
-        prev_row = re.sub(
-            r"<tr\b([^>]*)>",
-            lambda tr: f"<tr{_add_tr_class(tr.group(1), 'wikt-inflection-group-end')}>",
-            prev_row,
-            count=1,
-            flags=re.I,
-        )
-        return prev_row + next_tr
-
-    return re.sub(
-        r"(<tr\b[^>]*>(?:(?!</tr>).)*?</tr>\s*)"
-        r'(<tr\b[^>]*\bclass="[^"]*\bwikt-inflection-group-start\b)',
-        mark_end,
-        out,
+    table_re = re.compile(
+        r"<table\b(?=[^>]*\binflection-table\b)[^>]*>.*?</table>",
         flags=re.I | re.DOTALL,
     )
+
+    def replace_bare(match: re.Match[str]) -> str:
+        table_html = match.group(0)
+        split = _split_inflection_table_html(table_html)
+        return split if split else table_html
+
+    return table_re.sub(replace_bare, out)
 
 
 def _prepare_inflection_tables(html: str) -> str:
@@ -359,7 +402,7 @@ def _prepare_inflection_tables(html: str) -> str:
         out,
         flags=re.I,
     )
-    return _mark_inflection_outer_groups(out)
+    return _split_inflection_wrappers(out)
 
 
 def sanitize_section_html(html: str) -> str:

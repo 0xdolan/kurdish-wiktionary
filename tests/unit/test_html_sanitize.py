@@ -16,19 +16,23 @@ def test_sanitize_strips_embedded_style_and_uncollapses_inflection() -> None:
     assert "wikt-inflection-table" in out
 
 
-def test_inflection_outer_groups_mark_second_block() -> None:
+def test_inflection_splits_at_outer_section_rows() -> None:
     html = """
     <table class="inflection-table">
     <tbody>
     <tr><th colspan="4" class="outer">First block</th></tr>
     <tr><th>a</th><td>1</td></tr>
     <tr><th colspan="4" class="outer">Second block</th></tr>
+    <tr><th>b</th><td>2</td></tr>
     </tbody>
     </table>
     """
     out = sanitize_section_html(html)
-    assert "wikt-inflection-group-start" in out
-    assert "wikt-inflection-group-end" in out
+    assert "wikt-inflection-stack" in out
+    assert out.count("wikt-inflection-wrap--part") == 1
+    assert out.count("<table") == 2
+    assert "First block" in out
+    assert "Second block" in out
 
 
 def test_prepare_translations_strips_columns_and_tpos() -> None:
