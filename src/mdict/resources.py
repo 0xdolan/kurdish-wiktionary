@@ -34,16 +34,17 @@ def stage_resource_tree(
     elif not css_dest.exists():
         css_dest.parent.mkdir(parents=True, exist_ok=True)
         css_dest.write_text(
-            "\n.wikt-entry{font-family:system-ui,sans-serif;}\n",
+            "\n.wikt-entry{font-family:Manrope,system-ui,sans-serif;}\n",
             encoding="utf-8",
         )
 
-    fonts_src = assets / "fonts" / "sahel"
-    fonts_dest = resources_dir / "fonts" / "sahel"
-    if fonts_src.is_dir():
-        if fonts_dest.exists():
-            shutil.rmtree(fonts_dest)
-        shutil.copytree(fonts_src, fonts_dest)
+    for font_family in ("sahel", "manrope"):
+        fonts_src = assets / "fonts" / font_family
+        fonts_dest = resources_dir / "fonts" / font_family
+        if fonts_src.is_dir():
+            if fonts_dest.exists():
+                shutil.rmtree(fonts_dest)
+            shutil.copytree(fonts_src, fonts_dest)
 
     if include_media:
         # ZIM media harvesting: wire audio/images into resources_dir with paths

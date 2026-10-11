@@ -3,7 +3,7 @@ from html import escape
 from src.core.models import WiktionaryEntry
 from src.mdict.html_sanitize import sanitize_section_html
 from src.mdict.constants import SPEAKER_ICON_HREF
-from src.mdict.section_labels import SECTION_HTML_ORDER, SECTION_TITLES, render_section_heading
+from src.mdict.section_labels import SECTION_HTML_ORDER, SECTION_TITLES, wrap_section
 
 _SPEAKER_ICON = (
     f'<img class="wikt-speaker-img" src="{SPEAKER_ICON_HREF}" width="20" height="20" '
@@ -22,11 +22,48 @@ def render_cross_reference(display_text: str, headword: str) -> str:
 
 def _render_lang_toggle() -> str:
     return (
+        '<div class="wikt-sidebar-tools">'
         '<p class="wikt-lang-toggle">'
-        '<label><input type="checkbox" id="wikt-en-labels" /> '
+        '<span class="wikt-lang-toggle-heading">'
+        '<span class="wikt-toggle-ku">Zimanê sernavan</span>'
+        '<span class="wikt-toggle-en">Section titles</span>'
+        "</span>"
+        '<label class="wikt-lang-segment">'
+        '<input type="checkbox" id="wikt-en-labels" class="wikt-lang-segment-input" />'
+        '<span class="wikt-lang-segment-track">'
+        '<span class="wikt-lang-segment-option wikt-lang-segment-option--ku">Kurdî</span>'
+        '<span class="wikt-lang-segment-option wikt-lang-segment-option--en">English</span>'
+        '<span class="wikt-lang-segment-thumb" aria-hidden="true"></span>'
+        "</span>"
+        "</label>"
+        '<span class="wikt-lang-toggle-caption">'
         '<span class="wikt-toggle-ku">Sernavên bi Kurdî (Kurmancî)</span>'
         '<span class="wikt-toggle-en">English section titles</span>'
-        "</label></p>"
+        "</span>"
+        "</p>"
+        "</div>"
+    )
+
+
+def _render_entry_sidebar() -> str:
+    return (
+        '<aside class="wikt-sidebar" aria-label="Entry navigation">'
+        '<div class="wikt-sidebar-sticky">'
+        f"{_render_lang_toggle()}"
+        '<nav class="wikt-toc" aria-label="Sections">'
+        '<div class="wikt-toc-header">'
+        '<span class="wikt-toc-icon" aria-hidden="true"></span>'
+        '<p class="wikt-toc-title">'
+        '<span class="wikt-toc-title-ku">Naverok</span>'
+        '<span class="wikt-toc-title-en">Contents</span>'
+        "</p>"
+        "</div>"
+        '<div class="wikt-toc-scroll">'
+        '<ul class="wikt-toc-list"></ul>'
+        "</div>"
+        "</nav>"
+        "</div>"
+        "</aside>"
     )
 
 
@@ -120,16 +157,6 @@ def _render_thumbnails_inner(entry: WiktionaryEntry) -> str:
     return f'<div class="wikt-thumb-grid">{"".join(blocks)}</div>'
 
 
-def _render_col_label(section_key: str) -> str:
-    ku, en = SECTION_TITLES.get(section_key, (section_key, section_key))
-    return (
-        f'<p class="wikt-col-label" data-section-key="{section_key}">'
-        f'<span class="wikt-section-ku">{ku}</span>'
-        f'<span class="wikt-section-en">{en}</span>'
-        f"</p>"
-    )
-
-
 def _render_pronunciation_media_row(entry: WiktionaryEntry) -> str:
     pron = _render_pronunciation_inner(entry)
     visuals = _render_thumbnails_inner(entry)
@@ -140,40 +167,37 @@ def _render_pronunciation_media_row(entry: WiktionaryEntry) -> str:
         return (
             '<div class="wikt-pron-media-row">'
             '<div class="wikt-pron-media-col wikt-pron-media-col--pron">'
-            f"{render_section_heading('bilevkirin')}{pron}"
+            f"{wrap_section('bilevkirin', pron)}"
             "</div>"
             '<div class="wikt-pron-media-col wikt-pron-media-col--visual">'
-            f"{_render_col_label('wêne')}{visuals}"
+            f"{wrap_section('wêne', visuals)}"
             "</div>"
             "</div>"
         )
     if pron:
-        return f"{render_section_heading('bilevkirin')}{pron}"
-    return f"{render_section_heading('wêne')}{visuals}"
+        return wrap_section("bilevkirin", pron)
+    return wrap_section("wêne", visuals)
 
 
 def _render_chip_links(section_key: str, items: list[str]) -> str:
     if not items:
         return ""
     links = "".join(render_cross_reference(item, item) for item in items)
-    return f'{render_section_heading(section_key)}<p class="wikt-chip-list">{links}</p>'
+    return wrap_section(section_key, f'<p class="wikt-chip-list">{links}</p>')
 
 
 def _render_navder(entry: WiktionaryEntry) -> str:
     if not entry.definitions:
         return ""
     lis = "".join(f"<li>{escape(d)}</li>" for d in entry.definitions)
-    return (
-        f"{render_section_heading('navder')}"
-        f'<ol class="wikt-definitions">{lis}</ol>'
-    )
+    return wrap_section("navder", f'<ol class="wikt-definitions">{lis}</ol>')
 
 
 def _render_examples(entry: WiktionaryEntry) -> str:
     if not entry.examples:
         return ""
     lis = "".join(f"<li>{escape(ex)}</li>" for ex in entry.examples)
-    return f'{render_section_heading("nimune")}<ul class="wikt-examples">{lis}</ul>'
+    return wrap_section("nimune", f'<ul class="wikt-examples">{lis}</ul>')
 
 
 def _section_html_map(entry: WiktionaryEntry) -> dict[str, str]:
@@ -195,9 +219,9 @@ def _render_stored_sections(entry: WiktionaryEntry) -> str:
         safe = sanitize_section_html(fragment)
         if not safe.strip():
             continue
-        parts.append(render_section_heading(key))
         css_key = key.replace(" ", "-")
-        parts.append(f'<div class="wikt-section-html wikt-section-{css_key}">{safe}</div>')
+        block = f'<div class="wikt-section-html wikt-section-{css_key}">{safe}</div>'
+        parts.append(wrap_section(key, block))
         rendered_keys.add(key)
 
     chip_fallback = {
@@ -211,8 +235,9 @@ def _render_stored_sections(entry: WiktionaryEntry) -> str:
         parts.append(_render_chip_links(key, items))
 
     if "etimoloji" not in rendered_keys and entry.etymology:
-        parts.append(render_section_heading("etimoloji"))
-        parts.append(f'<p class="wikt-etymology">{escape(entry.etymology)}</p>')
+        parts.append(
+            wrap_section("etimoloji", f'<p class="wikt-etymology">{escape(entry.etymology)}</p>')
+        )
 
     return "".join(parts)
 
@@ -222,8 +247,10 @@ def render_entry_html(entry: WiktionaryEntry) -> str:
     head = escape(entry.entry)
     parts: list[str] = [
         '<article class="wikt-entry">',
-        _render_lang_toggle(),
-        '<header class="wikt-header">',
+        '<div class="wikt-entry-layout">',
+        _render_entry_sidebar(),
+        '<div class="wikt-entry-main">',
+        '<header class="wikt-header" id="wikt-sec-head">',
         f'<h1 class="wikt-headword">{head}</h1>',
         _render_pos_badges(entry.part_of_speech),
         "</header>",
@@ -237,8 +264,14 @@ def render_entry_html(entry: WiktionaryEntry) -> str:
     if source:
         parts.append(f'<p class="wikt-footer-note">Source: {escape(str(source))}</p>')
 
-    parts.append('<div class="wikt-lightbox-root" aria-hidden="true"></div>')
-    parts.append("</article>")
+    parts.extend(
+        [
+            "</div>",
+            "</div>",
+            '<div class="wikt-lightbox-root" aria-hidden="true"></div>',
+            "</article>",
+        ]
+    )
     return "".join(parts)
 
 

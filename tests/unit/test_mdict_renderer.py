@@ -4,6 +4,22 @@ from src.mdict.renderer import render_cross_reference, render_entry_html, sample
 from src.mdict.txt_writer import format_txt_link_record, format_txt_record
 
 
+def test_sections_are_collapsible_details() -> None:
+    entry = WiktionaryEntry(
+        entry="heval",
+        definitions=["friend"],
+        examples=["Hi"],
+    )
+    html = render_entry_html(entry)
+    assert '<details class="wikt-fold"' in html
+    assert "<summary class=" in html
+    assert "wikt-fold-body" in html
+    assert 'id="wikt-sec-navder"' in html
+    assert "wikt-entry-layout" in html
+    assert "wikt-toc-list" in html
+    assert "wikt-lang-toggle" in html
+
+
 def test_render_entry_includes_definitions() -> None:
     entry = WiktionaryEntry(
         entry="heval",

@@ -215,12 +215,47 @@ def _prepare_derived_terms(html: str) -> str:
     )
     out = re.sub(
         r'(<div[^>]*\bwikt-derived-grid\b[^>]*>\s*)<ul>',
-        r'\1<ul class="wikt-derived-list">',
+        r'\1<ul class="wikt-derived-list wikt-chip-list">',
         out,
         count=1,
         flags=re.I | re.DOTALL,
     )
-    return out
+    return _tag_derived_list_items(out)
+
+
+_DERIVED_LI = re.compile(r"<li>(.*?)</li>", re.I | re.DOTALL)
+_DERIVED_QUALIFIER = re.compile(
+    r'<span[^>]*\bqualifier-brac\b[^>]*>[^<]*</span>\s*'
+    r'<span[^>]*\bqualifier-content\b[^>]*>([^<]+)</span>\s*'
+    r'<span[^>]*\bqualifier-brac\b[^>]*>[^<]*</span>\s*',
+    re.I,
+)
+
+
+def _normalize_derived_item_inner(inner: str) -> tuple[str, str | None]:
+    pos_match = _DERIVED_QUALIFIER.search(inner)
+    if not pos_match:
+        return inner.strip(), None
+    pos = pos_match.group(1).strip().replace('"', "")
+    rest = _DERIVED_QUALIFIER.sub("", inner, count=1).strip()
+    pos_span = f'<span class="wikt-derived-pos">{pos}</span>'
+    return f"{pos_span} {rest}".strip(), pos
+
+
+def _tag_derived_list_items(html: str) -> str:
+    if "wikt-derived-list" not in html:
+        return html
+
+    def _li(match: re.Match[str]) -> str:
+        inner, pos = _normalize_derived_item_inner(match.group(1))
+        if pos:
+            return (
+                f'<li class="wikt-derived-item wikt-derived-item--tagged" '
+                f'data-pos="{pos}">{inner}</li>'
+            )
+        return f'<li class="wikt-derived-item">{inner}</li>'
+
+    return _DERIVED_LI.sub(_li, html)
 
 
 def _is_alt_script_section(html: str) -> bool:

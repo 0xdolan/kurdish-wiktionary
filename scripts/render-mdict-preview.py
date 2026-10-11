@@ -34,19 +34,17 @@ def build_preview_document(*, css_href: str, body_html: str, banner: str) -> str
     body {{
       margin: 0;
       min-height: 100vh;
-      padding: clamp(1.25rem, 4vw, 2rem) clamp(1rem, 3vw, 1.5rem) 2.5rem;
-      background: #f1f5f9;
+      min-height: 100dvh;
+      padding: 0;
+      background: #f6f8fb;
     }}
     .preview-banner {{
-      max-width: 42rem;
-      margin: 0 auto 1.25rem;
-      padding: 0.875rem 1.125rem;
+      margin: 0;
+      padding: clamp(0.75rem, 2vh, 1rem) clamp(1.25rem, 5vw, 3rem);
       font: 0.8rem/1.45 system-ui, sans-serif;
       color: #64748b;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      background: #eef2f7;
+      border-bottom: 1px solid #e2e8f0;
     }}
     .preview-banner code {{
       font-size: 0.85em;

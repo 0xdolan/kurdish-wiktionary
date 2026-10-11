@@ -52,6 +52,11 @@ def test_prepare_derived_terms_grid() -> None:
     out = sanitize_section_html(html)
     assert "wikt-derived-wrap" in out
     assert "wikt-derived-list" in out
+    assert "wikt-chip-list" in out
+    assert "wikt-derived-item" in out
+    assert 'data-pos="lêker"' in out
+    assert "wikt-derived-pos" in out
+    assert "qualifier-content" not in out
 
 
 def test_prepare_alt_script_list() -> None:

@@ -5,6 +5,7 @@
 | `css/wiktionary.css` | Shared entry stylesheet (packed into MDD) |
 | `img/volume-up.png` | Pronunciation speaker button icon (MDD) |
 | `fonts/sahel/` | [Sahel v3.4.0](https://github.com/rastikerdar/sahel-font) (Arabic-script / RTL text) |
+| `fonts/manrope/` | [Manrope](https://fonts.google.com/specimen/Manrope) (Latin / Latin-ext UI) |
 | `preview/heval.html` | Real SQL preview (Kurdish **heval**, audio + images) |
 | `preview/brave.html` | English demo (`--demo`) |
 | `preview/media/` | Media copied from `build/media/` for offline preview |
