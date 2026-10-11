@@ -286,6 +286,61 @@ def _prepare_citations(html: str) -> str:
     return out
 
 
+def _add_tr_class(tr_attrs: str, extra: str) -> str:
+    if re.search(r'\bclass="', tr_attrs, flags=re.I):
+        return re.sub(
+            r'class="([^"]*)"',
+            lambda m: f'class="{_normalize_class_list(m.group(1), extra=extra)}"',
+            tr_attrs,
+            count=1,
+            flags=re.I,
+        )
+    return f'{tr_attrs} class="{extra}"'
+
+
+def _mark_inflection_outer_groups(html: str) -> str:
+    """Mark second+ gender/morphology blocks in one inflection table for CSS separation."""
+    if "inflection-table" not in html or "outer" not in html:
+        return html
+    outer_row = re.compile(
+        r"<tr\b([^>]*)>(?=(?:(?!</tr>).)*?<th\b[^>]*\bclass=\"[^\"]*\bouter\b)",
+        flags=re.I | re.DOTALL,
+    )
+    index = 0
+
+    def mark_start(match: re.Match[str]) -> str:
+        nonlocal index
+        index += 1
+        attrs = match.group(1)
+        if index > 1:
+            attrs = _add_tr_class(attrs, "wikt-inflection-group-start")
+        return f"<tr{attrs}>"
+
+    out = outer_row.sub(mark_start, html)
+    if index < 2:
+        return out
+
+    def mark_end(match: re.Match[str]) -> str:
+        prev_row = match.group(1)
+        next_tr = match.group(2)
+        prev_row = re.sub(
+            r"<tr\b([^>]*)>",
+            lambda tr: f"<tr{_add_tr_class(tr.group(1), 'wikt-inflection-group-end')}>",
+            prev_row,
+            count=1,
+            flags=re.I,
+        )
+        return prev_row + next_tr
+
+    return re.sub(
+        r"(<tr\b[^>]*>(?:(?!</tr>).)*?</tr>\s*)"
+        r'(<tr\b[^>]*\bclass="[^"]*\bwikt-inflection-group-start\b)',
+        mark_end,
+        out,
+        flags=re.I | re.DOTALL,
+    )
+
+
 def _prepare_inflection_tables(html: str) -> str:
     """Drop Wiktionary-only collapse hooks; tag wrappers for MDict CSS."""
     if "inflection-table" not in html:
@@ -304,7 +359,7 @@ def _prepare_inflection_tables(html: str) -> str:
         out,
         flags=re.I,
     )
-    return out
+    return _mark_inflection_outer_groups(out)
 
 
 def sanitize_section_html(html: str) -> str:

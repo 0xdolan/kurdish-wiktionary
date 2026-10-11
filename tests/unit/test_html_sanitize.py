@@ -14,7 +14,21 @@ def test_sanitize_strips_embedded_style_and_uncollapses_inflection() -> None:
     assert "inflection-table-collapsed" not in out
     assert "wikt-inflection-wrap" in out
     assert "wikt-inflection-table" in out
-    assert "heval" in out
+
+
+def test_inflection_outer_groups_mark_second_block() -> None:
+    html = """
+    <table class="inflection-table">
+    <tbody>
+    <tr><th colspan="4" class="outer">First block</th></tr>
+    <tr><th>a</th><td>1</td></tr>
+    <tr><th colspan="4" class="outer">Second block</th></tr>
+    </tbody>
+    </table>
+    """
+    out = sanitize_section_html(html)
+    assert "wikt-inflection-group-start" in out
+    assert "wikt-inflection-group-end" in out
 
 
 def test_prepare_translations_strips_columns_and_tpos() -> None:

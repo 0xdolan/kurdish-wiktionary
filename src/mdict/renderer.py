@@ -157,25 +157,17 @@ def _render_thumbnails_inner(entry: WiktionaryEntry) -> str:
     return f'<div class="wikt-thumb-grid">{"".join(blocks)}</div>'
 
 
-def _render_pronunciation_media_row(entry: WiktionaryEntry) -> str:
+def _render_pronunciation_section(entry: WiktionaryEntry) -> str:
     pron = _render_pronunciation_inner(entry)
-    visuals = _render_thumbnails_inner(entry)
-    if not pron and not visuals:
+    if not pron:
         return ""
+    return wrap_section("bilevkirin", pron)
 
-    if pron and visuals:
-        return (
-            '<div class="wikt-pron-media-row">'
-            '<div class="wikt-pron-media-col wikt-pron-media-col--pron">'
-            f"{wrap_section('bilevkirin', pron)}"
-            "</div>"
-            '<div class="wikt-pron-media-col wikt-pron-media-col--visual">'
-            f"{wrap_section('wêne', visuals)}"
-            "</div>"
-            "</div>"
-        )
-    if pron:
-        return wrap_section("bilevkirin", pron)
+
+def _render_illustrations_section(entry: WiktionaryEntry) -> str:
+    visuals = _render_thumbnails_inner(entry)
+    if not visuals:
+        return ""
     return wrap_section("wêne", visuals)
 
 
@@ -254,7 +246,8 @@ def render_entry_html(entry: WiktionaryEntry) -> str:
         f'<h1 class="wikt-headword">{head}</h1>',
         _render_pos_badges(entry.part_of_speech),
         "</header>",
-        _render_pronunciation_media_row(entry),
+        _render_pronunciation_section(entry),
+        _render_illustrations_section(entry),
         _render_navder(entry),
         _render_examples(entry),
         _render_stored_sections(entry),
