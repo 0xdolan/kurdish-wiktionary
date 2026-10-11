@@ -111,8 +111,100 @@
     });
   }
 
+  function scrollParent(el) {
+    var p = el.parentElement;
+    while (p && p !== document.body) {
+      var style = window.getComputedStyle(p);
+      var oy = style.overflowY;
+      if ((oy === "auto" || oy === "scroll") && p.scrollHeight > p.clientHeight) {
+        return p;
+      }
+      p = p.parentElement;
+    }
+    return null;
+  }
+
+  function setupSidebarPin(entry) {
+    var desktop = window.matchMedia("(min-width: 721px)");
+    var layout = entry.querySelector(".wikt-entry-layout");
+    var aside = entry.querySelector(".wikt-sidebar");
+    var panel = entry.querySelector(".wikt-sidebar-sticky");
+    if (!layout || !aside || !panel) return;
+
+    var placeholder = aside.querySelector(".wikt-sidebar-pin-placeholder");
+    if (!placeholder) {
+      placeholder = document.createElement("div");
+      placeholder.className = "wikt-sidebar-pin-placeholder";
+      placeholder.hidden = true;
+      aside.insertBefore(placeholder, panel);
+    }
+
+    var scroller = scrollParent(entry);
+    var raf = 0;
+
+    function topInset() {
+      var entryTop = parseFloat(getComputedStyle(entry).paddingTop);
+      if (!Number.isNaN(entryTop) && entryTop > 0) return entryTop;
+      return 24;
+    }
+
+    function clearFixed() {
+      panel.classList.remove("wikt-sidebar-sticky--fixed");
+      panel.style.top = "";
+      panel.style.left = "";
+      panel.style.width = "";
+      placeholder.hidden = true;
+      placeholder.style.height = "";
+    }
+
+    function syncPin() {
+      raf = 0;
+      if (!desktop.matches) {
+        clearFixed();
+        return;
+      }
+
+      var top = topInset();
+      var layoutRect = layout.getBoundingClientRect();
+      var asideRect = aside.getBoundingClientRect();
+      var panelHeight = panel.offsetHeight;
+      var pinTop = top;
+      var endY = layoutRect.bottom - panelHeight - 12;
+
+      if (layoutRect.top >= pinTop || endY <= pinTop) {
+        clearFixed();
+        return;
+      }
+
+      placeholder.hidden = false;
+      placeholder.style.height = panelHeight + "px";
+      panel.classList.add("wikt-sidebar-sticky--fixed");
+      panel.style.top = pinTop + "px";
+      panel.style.left = asideRect.left + "px";
+      panel.style.width = asideRect.width + "px";
+    }
+
+    function scheduleSync() {
+      if (raf) return;
+      raf = window.requestAnimationFrame(syncPin);
+    }
+
+    if (scroller) {
+      scroller.addEventListener("scroll", scheduleSync, { passive: true });
+    }
+    window.addEventListener("scroll", scheduleSync, { passive: true });
+    window.addEventListener("resize", scheduleSync);
+    if (typeof desktop.addEventListener === "function") {
+      desktop.addEventListener("change", scheduleSync);
+    } else if (typeof desktop.addListener === "function") {
+      desktop.addListener(scheduleSync);
+    }
+    scheduleSync();
+  }
+
   function initEntry(entry) {
     bindToc(entry);
+    setupSidebarPin(entry);
   }
 
   function init() {
