@@ -819,6 +819,81 @@ ul.wikt-chip-list .Latn {
   border-top: 1px solid var(--wikt-border);
 }
 
+.wikt-live-wiki-intro {
+  margin: 0 0 var(--wikt-space-4);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--wikt-text-muted);
+}
+
+.wikt-live-wiki-action {
+  margin: 0 0 var(--wikt-space-3);
+}
+
+.wikt-live-wiki-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--wikt-accent);
+  text-decoration: none;
+  background: var(--wikt-surface-2);
+  border: 1px solid var(--wikt-border);
+  border-radius: var(--wikt-radius-md, 8px);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.wikt-live-wiki-link:hover {
+  color: var(--wikt-accent-hover);
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.wikt-live-wiki-link strong {
+  font-weight: 600;
+}
+
+.wikt-live-wiki-external {
+  display: inline-block;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin-inline-start: 0.15rem;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3Cpath d='M15 3h6v6'/%3E%3Cpath d='M10 14 21 3'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3Cpath d='M15 3h6v6'/%3E%3Cpath d='M10 14 21 3'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.wikt-live-wiki-url {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--wikt-muted);
+  word-break: break-all;
+}
+
+.wikt-live-wiki-url code {
+  font-size: inherit;
+  color: inherit;
+  background: transparent;
+}
+
+.wikt-live-wiki-link-en {
+  display: none;
+}
+
+.wikt-entry.wikt-show-en .wikt-live-wiki-link-ku {
+  display: none;
+}
+
+.wikt-entry.wikt-show-en .wikt-live-wiki-link-en {
+  display: inline;
+}
+
 .wikt-xref {
   color: var(--wikt-accent);
   font-weight: 500;
@@ -1217,6 +1292,37 @@ ul.wikt-chip-list .Latn {
 
 .wikt-ipa-row {
   margin-bottom: var(--wikt-space-2);
+}
+
+.wikt-kitekrin-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.65rem;
+  margin-bottom: var(--wikt-space-2);
+}
+
+.wikt-kitekrin-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--wikt-muted);
+  text-transform: none;
+}
+
+.wikt-kitekrin {
+  display: inline-block;
+  margin: 0;
+  padding: var(--wikt-space-2) var(--wikt-space-4);
+  font-size: 1rem;
+  font-family: var(--wikt-font-latin), Sahel, var(--wikt-font);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  color: #0f766e;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
 }
 
 .wikt-audio-list-compact {

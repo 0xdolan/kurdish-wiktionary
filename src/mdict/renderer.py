@@ -1,8 +1,19 @@
 from html import escape
 
 from src.core.models import WiktionaryEntry
-from src.mdict.html_sanitize import sanitize_section_html
-from src.mdict.constants import SPEAKER_ICON_HREF
+from src.mdict.constants import (
+    SPEAKER_ICON_HREF,
+    WIKTIONARY_EXTERNAL_REL,
+    WIKTIONARY_EXTERNAL_TARGET,
+)
+from src.mdict.syllabification import syllabification_from_bilevkirin_html
+from src.mdict.wiktionary_urls import DEFAULT_WIKTIONARY_LANG, live_wiktionary_article_url
+from src.mdict.html_sanitize import rewrite_section_media_hrefs, sanitize_section_html
+from src.mdict.section_media import build_media_href_lookup
+from src.mdict.illustration_media import (
+    illustration_media_fingerprints,
+    media_path_fingerprint,
+)
 from src.mdict.section_labels import SECTION_HTML_ORDER, SECTION_TITLES, wrap_section
 
 _SPEAKER_ICON = (
@@ -95,14 +106,32 @@ def _image_items(entry: WiktionaryEntry) -> list[dict]:
     raw = entry.metadata.get("mdict_media")
     if not isinstance(raw, list):
         return []
+    allowed = illustration_media_fingerprints(_section_html_map(entry))
+    if not allowed:
+        return []
     images = [m for m in raw if isinstance(m, dict) and m.get("kind") == "image"]
-    photos = [
+    matched = [
         m
         for m in images
-        if ".jpg" in str(m.get("href", "")).casefold()
-        or ".jpeg" in str(m.get("href", "")).casefold()
+        if media_path_fingerprint(str(m.get("href", ""))) in allowed
     ]
-    return photos if photos else images[:1]
+
+    def _sort_key(item: dict) -> tuple[int, str]:
+        href = str(item.get("href", "")).casefold()
+        photo = 0 if ".jpg" in href or ".jpeg" in href else 1
+        return photo, href
+
+    return sorted(matched, key=_sort_key)
+
+
+def _syllabification_value(entry: WiktionaryEntry) -> str | None:
+    raw = entry.metadata.get("syllabification")
+    if raw:
+        text = str(raw).strip()
+        if text:
+            return text
+    fragment = _section_html_map(entry).get("bilevkirin", "")
+    return syllabification_from_bilevkirin_html(fragment)
 
 
 def _render_pronunciation_inner(entry: WiktionaryEntry) -> str:
@@ -110,13 +139,25 @@ def _render_pronunciation_inner(entry: WiktionaryEntry) -> str:
         t for t in entry.phonetic_transcriptions if _is_pronunciation_token(t)
     ]
     audio_items = _audio_items(entry)
-    if not ipa_tokens and not audio_items:
+    syllabification = _syllabification_value(entry)
+    if not ipa_tokens and not audio_items and not syllabification:
         return ""
 
     parts: list[str] = ['<div class="wikt-pron-block">']
     if ipa_tokens:
         chips = "".join(f'<span class="wikt-ipa">{escape(t)}</span>' for t in ipa_tokens)
         parts.append(f'<div class="wikt-meta-row wikt-ipa-row">{chips}</div>')
+
+    if syllabification:
+        parts.append(
+            '<div class="wikt-meta-row wikt-kitekrin-row">'
+            '<span class="wikt-kitekrin-label">'
+            '<span class="wikt-toggle-ku">Kîtekirin</span>'
+            '<span class="wikt-toggle-en">Syllabification</span>'
+            "</span>"
+            f'<span class="wikt-kitekrin">{escape(syllabification)}</span>'
+            "</div>"
+        )
 
     if audio_items:
         parts.append('<ul class="wikt-audio-list wikt-audio-list-compact">')
@@ -199,6 +240,19 @@ def _section_html_map(entry: WiktionaryEntry) -> dict[str, str]:
     return {str(k): str(v) for k, v in raw.items() if v}
 
 
+def _media_items(entry: WiktionaryEntry) -> list[dict]:
+    raw = entry.metadata.get("mdict_media")
+    if not isinstance(raw, list):
+        return []
+    return [m for m in raw if isinstance(m, dict)]
+
+
+def _prepare_section_fragment(entry: WiktionaryEntry, fragment: str) -> str:
+    lookup = build_media_href_lookup(_media_items(entry))
+    mapped = rewrite_section_media_hrefs(fragment, href_lookup=lookup)
+    return sanitize_section_html(mapped)
+
+
 def _render_stored_sections(entry: WiktionaryEntry) -> str:
     sections = _section_html_map(entry)
     parts: list[str] = []
@@ -208,7 +262,7 @@ def _render_stored_sections(entry: WiktionaryEntry) -> str:
         fragment = sections.get(key)
         if not fragment:
             continue
-        safe = sanitize_section_html(fragment)
+        safe = _prepare_section_fragment(entry, fragment)
         if not safe.strip():
             continue
         css_key = key.replace(" ", "-")
@@ -234,6 +288,47 @@ def _render_stored_sections(entry: WiktionaryEntry) -> str:
     return "".join(parts)
 
 
+def _wiktionary_lang(entry: WiktionaryEntry) -> str:
+    for key in ("wiktionary_lang", "lang"):
+        raw = entry.metadata.get(key)
+        if raw:
+            return str(raw).split("-", maxsplit=1)[0].casefold()
+    source = str(entry.metadata.get("zim_source") or entry.metadata.get("zim_path") or "")
+    if "en.wiktionary" in source.casefold():
+        return "en"
+    return DEFAULT_WIKTIONARY_LANG
+
+
+def _live_wiktionary_url(entry: WiktionaryEntry) -> str:
+    override = entry.metadata.get("wiktionary_url")
+    if override:
+        return str(override).strip()
+    return live_wiktionary_article_url(entry.entry, lang=_wiktionary_lang(entry))
+
+
+def _render_live_wiktionary_section(entry: WiktionaryEntry) -> str:
+    url = _live_wiktionary_url(entry)
+    if not url:
+        return ""
+    head = escape(entry.entry)
+    body = (
+        '<p class="wikt-live-wiki-intro">'
+        '<span class="wikt-toggle-ku">Di geroka xwe de vê peyvê li Wîkîferhengê veke.</span>'
+        '<span class="wikt-toggle-en">Open this entry on the live Wiktionary site in your browser.</span>'
+        "</p>"
+        f'<p class="wikt-live-wiki-action">'
+        f'<a class="wikt-live-wiki-link" href="{escape(url)}" '
+        f'target="{WIKTIONARY_EXTERNAL_TARGET}" rel="{WIKTIONARY_EXTERNAL_REL}">'
+        f'<span class="wikt-live-wiki-link-ku">Li Wîkîferhengê veke: <strong>{head}</strong></span>'
+        f'<span class="wikt-live-wiki-link-en">Open on Wiktionary: <strong>{head}</strong></span>'
+        f'<span class="wikt-live-wiki-external" aria-hidden="true"></span>'
+        f"</a>"
+        f"</p>"
+        f'<p class="wikt-live-wiki-url"><code>{escape(url)}</code></p>'
+    )
+    return wrap_section("li wiktionary", body)
+
+
 def render_entry_html(entry: WiktionaryEntry) -> str:
     """Body fragment for one MDict article (stylesheet + script linked in txt_writer)."""
     head = escape(entry.entry)
@@ -251,11 +346,8 @@ def render_entry_html(entry: WiktionaryEntry) -> str:
         _render_navder(entry),
         _render_examples(entry),
         _render_stored_sections(entry),
+        _render_live_wiktionary_section(entry),
     ]
-
-    source = entry.metadata.get("zim_source") or entry.metadata.get("zim_path")
-    if source:
-        parts.append(f'<p class="wikt-footer-note">Source: {escape(str(source))}</p>')
 
     parts.extend(
         [

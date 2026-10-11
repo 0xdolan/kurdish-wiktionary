@@ -1,4 +1,5 @@
-from src.mdict.html_sanitize import sanitize_section_html
+from src.mdict.html_sanitize import rewrite_section_media_hrefs, sanitize_section_html
+from src.mdict.section_media import build_media_href_lookup
 
 
 def test_sanitize_strips_embedded_style_and_uncollapses_inflection() -> None:
@@ -118,3 +119,22 @@ def test_mark_arabic_script_spans_adds_rtl_class() -> None:
     out = sanitize_section_html(html)
     assert "wikt-script-arabic" in out
     assert 'dir="rtl"' in out
+
+
+def test_rewrite_section_media_hrefs_maps_zim_assets() -> None:
+    html = (
+        '<img src="./_assets_/9ae9a9c4e10735879dfb80eb97080019/hiero_Aa1.png" '
+        'alt="x" />'
+    )
+    lookup = build_media_href_lookup(
+        [
+            {
+                "kind": "image",
+                "href": "heval/image/hiero_Aa1-b0078bd565.png",
+                "source_url": "./_assets_/9ae9a9c4e10735879dfb80eb97080019/hiero_Aa1.png",
+            }
+        ]
+    )
+    out = rewrite_section_media_hrefs(html, href_lookup=lookup)
+    assert "_assets_" not in out
+    assert 'src="heval/image/hiero_Aa1-b0078bd565.png"' in out

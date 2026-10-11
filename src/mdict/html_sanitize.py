@@ -405,6 +405,30 @@ def _prepare_inflection_tables(html: str) -> str:
     return _split_inflection_wrappers(out)
 
 
+_MEDIA_HREF = re.compile(
+    r'(?P<attr>\b(?:src|href))="(?:\./)?(?:_assets_/)?(?P<file>[^"]+)"',
+    flags=re.I,
+)
+
+
+def rewrite_section_media_hrefs(html: str, *, href_lookup: dict[str, str]) -> str:
+    """Rewrite ZIM ``_assets_/…`` (and bare filenames) to local ``mdict_media`` hrefs."""
+    if not html or not href_lookup:
+        return html
+
+    from src.mdict.section_media import resolve_media_href
+
+    def repl(match: re.Match[str]) -> str:
+        attr = match.group("attr")
+        file_part = match.group("file")
+        href = resolve_media_href(file_part, href_lookup)
+        if not href:
+            return match.group(0)
+        return f'{attr}="{href}"'
+
+    return _MEDIA_HREF.sub(repl, html)
+
+
 def sanitize_section_html(html: str) -> str:
     raw = _SCRIPT_STYLE.sub("", html)
     raw = _STYLE.sub("", raw)

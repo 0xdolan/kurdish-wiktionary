@@ -29,6 +29,7 @@ English demo only: `uv run python scripts/render-mdict-preview.py --demo` → `a
 | Show the **headword again** in the view (lookup does not repeat the key) | `<h1 class="wikt-headword">…</h1>` inside the article |
 | Definitions, IPA, POS, examples, synonyms, antonyms, etymology, derived, conjugation | Renderer sections; conjugation from `metadata.conjugation` or `metadata.conjugation_html` |
 | Cross-links to other lemmas | `<a href="entry://{headword}">label</a>` |
+| Live article on ku.wiktionary.org | Final fold **Li Wîkîferhengê** — `target="_blank"` HTTPS link (override via `metadata.wiktionary_url`) |
 | Same lemma, duplicate key (variant title) | `@@@LINK=canonical_headword` record |
 | UTF-8 end-to-end | `write_dict_txt(..., encoding="utf-8")` |
 | Pack | `uv run python -m src.mdict.export` or `mdict --title … -a dict.txt out.mdx` |

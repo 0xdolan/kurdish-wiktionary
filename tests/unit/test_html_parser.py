@@ -146,6 +146,16 @@ def test_parse_empty_span_heading_and_h4_sections() -> None:
     assert "etimoloji" in section_html
 
 
+def test_parse_extracts_syllabification_metadata() -> None:
+    html = """
+    <div class="mw-parser-output">
+      <ul><li>Kîtekirin: he·val</li></ul>
+    </div>
+    """
+    entry = parse_wiktionary_html("heval", html)
+    assert entry.metadata.get("syllabification") == "he·val"
+
+
 def test_parse_decodes_html_entities_in_definitions() -> None:
     html = """
     <div class="mw-parser-output">

@@ -18,6 +18,7 @@ SECTION_TITLES: dict[str, tuple[str, str]] = {
     "nimune": ("Nimûne", "Examples"),
     "wêne": ("Wêne", "Illustrations"),
     "wene": ("Wêne", "Illustrations"),
+    "li wiktionary": ("Li Wîkîferhengê", "On Wiktionary"),
 }
 
 # Section HTML keys to render after main definitions (order matters).

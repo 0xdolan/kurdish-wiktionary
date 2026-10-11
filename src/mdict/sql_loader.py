@@ -22,6 +22,7 @@ class MdictRenderMedia:
     href: str
     label: str | None = None
     caption: str | None = None
+    source_url: str | None = None
 
 
 def _audio_label_from_path(local_path: str) -> str:
@@ -57,7 +58,13 @@ def media_rows_to_render_items(
                 caption = caption or row.extra.get("caption") or row.extra.get("alt")
             label = caption
         items.append(
-            MdictRenderMedia(kind=row.kind, href=href, label=label, caption=caption)
+            MdictRenderMedia(
+                kind=row.kind,
+                href=href,
+                label=label,
+                caption=caption,
+                source_url=(row.url or None),
+            )
         )
     return items
 
@@ -82,6 +89,7 @@ def attach_media_to_entry(
                 "href": m.href,
                 "label": m.label,
                 "caption": m.caption,
+                "source_url": m.source_url,
             }
         )
     metadata = dict(entry.metadata)

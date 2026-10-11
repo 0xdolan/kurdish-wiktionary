@@ -282,6 +282,21 @@ def _extract_ipa(tree: LexborHTMLParser) -> list[str]:
     return result
 
 
+def _extract_syllabification(tree: LexborHTMLParser) -> str | None:
+    for node in tree.css("li"):
+        text = _clean_text(node)
+        if not text or len(text) > 120:
+            continue
+        if not text.casefold().startswith("kîtekirin"):
+            continue
+        if ":" not in text:
+            continue
+        value = text.split(":", 1)[1].strip()
+        if value and "mw-parser-output" not in value:
+            return value
+    return None
+
+
 def _extract_pronunciations(tree: LexborHTMLParser) -> list[str]:
     seen: set[str] = set()
     urls: list[str] = []
@@ -388,6 +403,7 @@ def parse_wiktionary_html(
 
     phonetic_transcriptions = _extract_ipa(tree)
     pronunciations = _extract_pronunciations(tree)
+    syllabification = _extract_syllabification(tree)
     examples = _extract_examples(tree)
 
     if not definitions and root is not None:
@@ -400,6 +416,8 @@ def parse_wiktionary_html(
     metadata.setdefault("layout_version", LAYOUT_VERSION)
     if section_html:
         metadata["section_html"] = section_html
+    if syllabification:
+        metadata["syllabification"] = syllabification
 
     return WiktionaryEntry(
         entry=decode_plain_text(entry),
