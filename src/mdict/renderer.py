@@ -14,6 +14,7 @@ from src.mdict.illustration_media import (
     illustration_media_fingerprints,
     media_path_fingerprint,
 )
+from src.mdict.section_content import html_has_visible_content, non_empty_strings
 from src.mdict.section_labels import SECTION_HTML_ORDER, SECTION_TITLES, wrap_section
 
 _SPEAKER_ICON = (
@@ -175,7 +176,10 @@ def _render_pronunciation_inner(entry: WiktionaryEntry) -> str:
             )
         parts.append("</ul>")
     parts.append("</div>")
-    return "".join(parts)
+    inner = "".join(parts)
+    if not html_has_visible_content(inner):
+        return ""
+    return inner
 
 
 def _render_thumbnails_inner(entry: WiktionaryEntry) -> str:
@@ -213,23 +217,26 @@ def _render_illustrations_section(entry: WiktionaryEntry) -> str:
 
 
 def _render_chip_links(section_key: str, items: list[str]) -> str:
-    if not items:
+    terms = non_empty_strings(items)
+    if not terms:
         return ""
-    links = "".join(render_cross_reference(item, item) for item in items)
+    links = "".join(render_cross_reference(item, item) for item in terms)
     return wrap_section(section_key, f'<p class="wikt-chip-list">{links}</p>')
 
 
 def _render_navder(entry: WiktionaryEntry) -> str:
-    if not entry.definitions:
+    definitions = non_empty_strings(entry.definitions)
+    if not definitions:
         return ""
-    lis = "".join(f"<li>{escape(d)}</li>" for d in entry.definitions)
+    lis = "".join(f"<li>{escape(d)}</li>" for d in definitions)
     return wrap_section("navder", f'<ol class="wikt-definitions">{lis}</ol>')
 
 
 def _render_examples(entry: WiktionaryEntry) -> str:
-    if not entry.examples:
+    examples = non_empty_strings(entry.examples)
+    if not examples:
         return ""
-    lis = "".join(f"<li>{escape(ex)}</li>" for ex in entry.examples)
+    lis = "".join(f"<li>{escape(ex)}</li>" for ex in examples)
     return wrap_section("nimune", f'<ul class="wikt-examples">{lis}</ul>')
 
 
@@ -263,7 +270,7 @@ def _render_stored_sections(entry: WiktionaryEntry) -> str:
         if not fragment:
             continue
         safe = _prepare_section_fragment(entry, fragment)
-        if not safe.strip():
+        if not html_has_visible_content(safe):
             continue
         css_key = key.replace(" ", "-")
         block = f'<div class="wikt-section-html wikt-section-{css_key}">{safe}</div>'
@@ -280,9 +287,10 @@ def _render_stored_sections(entry: WiktionaryEntry) -> str:
             continue
         parts.append(_render_chip_links(key, items))
 
-    if "etimoloji" not in rendered_keys and entry.etymology:
+    etymology = (entry.etymology or "").strip()
+    if "etimoloji" not in rendered_keys and etymology:
         parts.append(
-            wrap_section("etimoloji", f'<p class="wikt-etymology">{escape(entry.etymology)}</p>')
+            wrap_section("etimoloji", f'<p class="wikt-etymology">{escape(etymology)}</p>')
         )
 
     return "".join(parts)

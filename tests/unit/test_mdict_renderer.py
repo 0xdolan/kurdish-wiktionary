@@ -60,6 +60,21 @@ def test_sample_brave_renders_synonyms() -> None:
     assert "entry://courageous" in html
 
 
+def test_empty_sections_omitted_from_html() -> None:
+    entry = WiktionaryEntry(
+        entry="test",
+        definitions=[],
+        examples=["  ", ""],
+        metadata={"section_html": {"werger": "<p>  </p>"}},
+    )
+    html = render_entry_html(entry)
+    assert 'data-section-key="navder"' not in html
+    assert 'data-section-key="nimune"' not in html
+    assert 'data-section-key="wêne"' not in html
+    assert 'data-section-key="bilevkirin"' not in html
+    assert 'data-section-key="werger"' not in html
+
+
 def test_render_pronunciation_includes_syllabification() -> None:
     entry = WiktionaryEntry(
         entry="heval",
