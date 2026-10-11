@@ -3,8 +3,13 @@ import asyncio
 import json
 import sys
 
+from rich.console import Console
+
+from src.catalog.cli_progress import CatalogJobProgress
 from src.config import get_settings
 from src.lexicon import service as lexicon_service
+from src.lexicon.media_download import close_media_http_client
+from src.lexicon.media_run_log import MediaDownloadRunLogger
 from src.repository.db.base import dispose_engine, get_session_factory, init_engine
 
 
@@ -48,6 +53,34 @@ def build_parser() -> argparse.ArgumentParser:
     media_dl = sub.add_parser("media-download", help="Download media for one entry")
     media_dl.add_argument("word")
     media_dl.add_argument("--confirm", action="store_true")
+    media_dl.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-download even when local_path file already exists",
+    )
+
+    media_all = sub.add_parser(
+        "media-download-all",
+        help="Download media for all SQL entries with entry_media rows",
+    )
+    media_all.add_argument("--confirm", action="store_true")
+    media_all.add_argument(
+        "--limit",
+        type=int,
+        default=500,
+        help="Max entries per batch (default 500, max 50000)",
+    )
+    media_all.add_argument("--offset", type=int, default=0)
+    media_all.add_argument(
+        "--force",
+        action="store_true",
+        help="Include entries that already have local_path set",
+    )
+    media_all.add_argument(
+        "--all",
+        action="store_true",
+        help="Repeat batches until no pending media (requires --confirm)",
+    )
 
     sparse = sub.add_parser("sparse", help="Diagnostics for empty / stale rows")
     sparse.add_argument("--limit", type=int, default=50)
@@ -136,7 +169,48 @@ async def async_main(args: argparse.Namespace) -> int:
                 settings,
                 args.word,
                 confirm=args.confirm,
+                missing_only=not args.force,
             )
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return 0
+
+        if args.command == "media-download-all":
+            if args.all and not args.confirm:
+                print("media-download-all --all requires --confirm", file=sys.stderr)
+                return 2
+            if args.confirm:
+                console = Console()
+                run_logger = MediaDownloadRunLogger(settings.catalog_state_dir)
+                with CatalogJobProgress(console, "Media download") as job:
+                    hooks = lexicon_service.build_media_download_rich_hooks(
+                        job,
+                        run_all=args.all,
+                    )
+                    payload = await lexicon_service.download_all_entry_media(
+                        session,
+                        settings,
+                        confirm=True,
+                        limit=args.limit,
+                        offset=args.offset,
+                        missing_only=not args.force,
+                        run_all=args.all,
+                        progress_hooks=hooks,
+                        failure_logger=run_logger,
+                    )
+                if payload.get("failures_log"):
+                    console.print(
+                        f"[dim]Failures log: {payload['failures_log']}[/dim]"
+                    )
+            else:
+                payload = await lexicon_service.download_all_entry_media(
+                    session,
+                    settings,
+                    confirm=False,
+                    limit=args.limit,
+                    offset=args.offset,
+                    missing_only=not args.force,
+                    run_all=args.all,
+                )
             print(json.dumps(payload, ensure_ascii=False, indent=2))
             return 0
 
@@ -160,6 +234,7 @@ def main() -> None:
         try:
             return await async_main(args)
         finally:
+            await close_media_http_client()
             await dispose_engine()
 
     raise SystemExit(asyncio.run(_run()))

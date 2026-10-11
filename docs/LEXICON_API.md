@@ -96,6 +96,18 @@ uv run python -m src.lexicon get heval --field synonyms
 uv run python -m src.lexicon zim-html heval
 uv run python -m src.lexicon zim-html heval --section beranber
 uv run python -m src.lexicon media-download heval --confirm
+
+# Bulk: all extracted entries with media URL rows
+uv run python -m src.lexicon media-download-all                    # preview counts
+uv run python -m src.lexicon media-download-all --confirm --all    # one command until done
+./scripts/media-download-all.sh                                    # same (batch size: MEDIA_DOWNLOAD_BATCH_SIZE)
+uv run python -m src.lexicon media-download-all --confirm --limit 500  # single batch only
+uv run python -m src.lexicon media-download-all --confirm --all --force  # re-fetch everything
+```
+
+With `--confirm`, each run writes a failure JSONL under `build/catalog/state/runs/media-download-<timestamp>/failures.jsonl` (Wikimedia 429/5xx are retried with backoff). Existing files are reused when on-disk size matches the ZIM payload or remote `Content-Length`.
+
+```bash
 uv run python -m src.lexicon sparse --mode missing_relations --limit 50
 ```
 

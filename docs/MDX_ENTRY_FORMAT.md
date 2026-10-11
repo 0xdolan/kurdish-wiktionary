@@ -118,10 +118,11 @@ Paths must exist under the MDD resource tree staged by `stage_resource_tree()`.
 ## Operator workflow
 
 1. **Preview design** — `uv run python scripts/render-mdict-preview.py` → open `assets/mdict/preview/brave.html`.
-2. **Export SQL → dict.txt** — `uv run python -m src.mdict.export --data-source sql --output-dir build/mdict --limit 50000`.
-3. **Verify staging** — `build/mdict/staging/dict.txt` (UTF-8), `build/mdict/staging/resources/css/wiktionary.css`.
-4. **Smoke pack sample** — `./scripts/pack-mdict-sample.sh` → `build/mdict/sample/sample.mdx`.
-5. **Full corpus** — raise `--limit` or add pagination; keep MDX + MDD basenames aligned (e.g. `wikiferheng.mdx` / `wikiferheng.mdd`).
+2. **Download media (bulk)** — `uv run python -m src.lexicon media-download-all --confirm --limit 500` (repeat with higher `--offset` until `media_rows_missing_local_path` is 0).
+3. **Export SQL → dict.txt** — `uv run python -m src.mdict.export --data-source sql --output-dir build/mdict --limit 50000` (full template + media paths: export enrichment still in progress; preview script is the reference for one lemma).
+4. **Verify staging** — `build/mdict/staging/dict.txt` (UTF-8), `build/mdict/staging/resources/css/wiktionary.css`.
+5. **Smoke pack sample** — `./scripts/pack-mdict-sample.sh` → `build/mdict/sample/sample.mdx`.
+6. **Full corpus** — raise `--limit` or add pagination; keep MDX + MDD basenames aligned (e.g. `wikiferheng.mdx` / `wikiferheng.mdd`).
 
 ---
 

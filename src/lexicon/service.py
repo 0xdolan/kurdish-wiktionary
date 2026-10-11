@@ -1,5 +1,6 @@
 import asyncio
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -8,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.catalog.cli_progress import CatalogJobProgress, ProgressTick
 from src.catalog.zim_paths import resolve_zim_paths, sort_zim_paths_for_extract
 from src.config import Settings
 from src.core.models import WiktionaryEntry
@@ -16,6 +18,7 @@ from src.extraction.parse_page import parse_wiktionary_page
 from src.extraction.zim_media import local_media_relative_path, resolve_media_href
 from src.extraction.zim_reader import ZimReader
 from src.lexicon.media_download import download_media_item
+from src.lexicon.media_run_log import MediaDownloadRunLogger
 from src.repository.db.mappers import entry_model_to_schema
 from src.repository.db.models import EntryModel
 from src.repository.db.models.entry import (
@@ -583,12 +586,245 @@ async def duplicate_field_diagnostics(
     return findings
 
 
+def _media_file_exists(export_dir: Path, local_path: str | None) -> bool:
+    if not local_path:
+        return False
+    return (export_dir / local_path).is_file()
+
+
+def _committed_media_local_path(
+    export_dir: Path,
+    *,
+    entry_normalized: str,
+    kind: str,
+    url: str,
+    db_local_path: str | None,
+) -> str | None:
+    if db_local_path and _media_file_exists(export_dir, db_local_path):
+        return db_local_path
+    rel = local_media_relative_path(entry_normalized=entry_normalized, kind=kind, url=url)
+    if _media_file_exists(export_dir, rel):
+        return rel
+    return None
+
+
+async def _download_media_rows_for_entry(
+    session: AsyncSession,
+    settings: Settings,
+    row: EntryModel,
+    *,
+    missing_only: bool,
+    failure_logger: MediaDownloadRunLogger | None = None,
+) -> dict[str, Any]:
+    payload = await asyncio.to_thread(_fetch_zim_article, settings, row.entry)
+    items = await list_entry_media(session, row.entry) or []
+    if not items:
+        page = parse_wiktionary_page(row.entry, payload.html)
+        items = page.media
+
+    export_dir = settings.media_export_dir
+    results: list[dict[str, Any]] = []
+    skipped = 0
+    for item in items:
+        url = str(item.get("url", ""))
+        kind = str(item.get("kind", "other"))
+        db_local_path = item.get("local_path")
+        committed = _committed_media_local_path(
+            export_dir,
+            entry_normalized=row.entry_normalized,
+            kind=kind,
+            url=url,
+            db_local_path=str(db_local_path) if db_local_path else None,
+        )
+        if missing_only and committed and db_local_path and committed == db_local_path:
+            skipped += 1
+            results.append({**item, "status": "skipped", "local_path": committed})
+            continue
+
+        outcome = await download_media_item(
+            export_dir=export_dir,
+            entry_normalized=row.entry_normalized,
+            kind=kind,
+            url=url,
+            zim_path=Path(payload.zim_path),
+            article_zim_path=payload.article_path,
+            reuse_if_same_size=missing_only,
+        )
+        merged = {**item, **outcome}
+        if outcome.get("status") == "reused":
+            merged["status"] = "skipped"
+            merged["local_path"] = outcome.get("local_path")
+            skipped += 1
+        elif outcome.get("local_path"):
+            merged["status"] = "downloaded"
+        else:
+            merged["status"] = "failed"
+            if failure_logger is not None:
+                failure_logger.log_failure(
+                    {
+                        "entry": row.entry,
+                        "entry_id": row.id,
+                        "url": url,
+                        "kind": kind,
+                        "error": outcome.get("error"),
+                        "source": outcome.get("source"),
+                    }
+                )
+        results.append(merged)
+
+    for item in results:
+        local_path = item.get("local_path")
+        if not local_path or item.get("status") == "failed":
+            continue
+        stmt = select(EntryMediaModel).where(
+            EntryMediaModel.entry_id == row.id,
+            EntryMediaModel.url == item.get("url"),
+        )
+        media_row = (await session.execute(stmt)).scalar_one_or_none()
+        if media_row is not None:
+            media_row.local_path = str(local_path)
+            byte_size = item.get("bytes")
+            if byte_size is not None:
+                media_row.extra = {**media_row.extra, "bytes": int(byte_size)}
+
+    return {
+        "entry": row.entry,
+        "entry_id": row.id,
+        "items": results,
+        "skipped": skipped,
+        "export_dir": str(export_dir),
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class MediaDownloadProgressHooks:
+    on_batch_start: Callable[..., None] | None = None
+    on_tick: Callable[[ProgressTick], None] | None = None
+    on_batch_finish: Callable[..., None] | None = None
+
+
+def build_media_download_rich_hooks(
+    job: CatalogJobProgress,
+    *,
+    run_all: bool,
+) -> MediaDownloadProgressHooks:
+    """Wire ``CatalogJobProgress`` to :func:`download_all_entry_media` callbacks."""
+
+    def on_batch_start(
+        *,
+        batch_index: int,
+        batch_total: int | None,
+        item_total: int,
+        corpus_pending: int,
+        entries_pending: int | None,
+    ) -> None:
+        job.start_batch(
+            batch_index=batch_index,
+            batch_total=batch_total if run_all else 1,
+            item_total=item_total,
+            corpus_pending=corpus_pending,
+        )
+
+    def on_batch_finish(
+        *,
+        entries_selected: int,
+        items_downloaded: int,
+        items_skipped: int,
+        items_failed: int,
+        **_: object,
+    ) -> None:
+        job.finish_batch(
+            attempted=entries_selected,
+            extracted=items_downloaded,
+            skipped=items_skipped,
+            failed=items_failed,
+        )
+
+    return MediaDownloadProgressHooks(
+        on_batch_start=on_batch_start,
+        on_tick=job.on_tick,
+        on_batch_finish=on_batch_finish,
+    )
+
+
+async def _count_entries_for_media_download(
+    session: AsyncSession,
+    *,
+    missing_only: bool,
+) -> int:
+    if missing_only:
+        ids_subq = (
+            select(EntryMediaModel.entry_id)
+            .where(EntryMediaModel.local_path.is_(None))
+            .distinct()
+            .subquery()
+        )
+    else:
+        ids_subq = select(EntryMediaModel.entry_id).distinct().subquery()
+    return int(
+        (await session.execute(select(func.count()).select_from(ids_subq))).scalar_one()
+    )
+
+
+async def _media_download_summary(session: AsyncSession) -> dict[str, int]:
+    total_rows = int(
+        (await session.execute(select(func.count()).select_from(EntryMediaModel))).scalar_one()
+    )
+    missing_rows = int(
+        (
+            await session.execute(
+                select(func.count())
+                .select_from(EntryMediaModel)
+                .where(EntryMediaModel.local_path.is_(None))
+            )
+        ).scalar_one()
+    )
+    distinct_entries = select(EntryMediaModel.entry_id).distinct().subquery()
+    entry_count = int(
+        (await session.execute(select(func.count()).select_from(distinct_entries))).scalar_one()
+    )
+    return {
+        "entries_with_media": entry_count,
+        "media_rows": total_rows,
+        "media_rows_missing_local_path": missing_rows,
+    }
+
+
+async def _list_entry_rows_for_media_download(
+    session: AsyncSession,
+    *,
+    limit: int,
+    offset: int,
+    missing_only: bool,
+) -> list[EntryModel]:
+    safe_limit = max(1, min(limit, 50_000))
+    safe_offset = max(0, offset)
+    if missing_only:
+        ids_stmt = (
+            select(EntryMediaModel.entry_id)
+            .where(EntryMediaModel.local_path.is_(None))
+            .distinct()
+        )
+    else:
+        ids_stmt = select(EntryMediaModel.entry_id).distinct()
+    stmt = (
+        select(EntryModel)
+        .where(EntryModel.id.in_(ids_stmt))
+        .order_by(EntryModel.entry_normalized.asc())
+        .offset(safe_offset)
+        .limit(safe_limit)
+    )
+    rows = (await session.execute(stmt)).scalars().all()
+    return list(rows)
+
+
 async def download_entry_media(
     session: AsyncSession,
     settings: Settings,
     word: str,
     *,
     confirm: bool,
+    missing_only: bool = True,
 ) -> dict[str, Any]:
     if not confirm:
         items = await list_entry_media(session, word)
@@ -604,35 +840,253 @@ async def download_entry_media(
     row = await _load_entry_row(session, word)
     if row is None:
         raise LookupError(f"Entry not found in SQL: {word}")
-    payload = await asyncio.to_thread(_fetch_zim_article, settings, word)
-    items = await list_entry_media(session, word) or []
-    if not items:
-        page = parse_wiktionary_page(word, payload.html)
-        items = page.media
-    export_dir = settings.media_export_dir
-    results: list[dict[str, Any]] = []
-    for item in items:
-        outcome = await download_media_item(
-            export_dir=export_dir,
-            entry_normalized=row.entry_normalized,
-            kind=str(item.get("kind", "other")),
-            url=str(item.get("url", "")),
-            zim_path=Path(payload.zim_path),
-            article_zim_path=payload.article_path,
-        )
-        results.append({**item, **outcome})
-
-    for item in results:
-        local_path = item.get("local_path")
-        if not local_path:
-            continue
-        stmt = select(EntryMediaModel).where(
-            EntryMediaModel.entry_id == row.id,
-            EntryMediaModel.url == item.get("url"),
-        )
-        media_row = (await session.execute(stmt)).scalar_one_or_none()
-        if media_row is not None:
-            media_row.local_path = str(local_path)
-
+    payload = await _download_media_rows_for_entry(
+        session,
+        settings,
+        row,
+        missing_only=missing_only,
+    )
     await session.commit()
-    return {"entry": word, "status": "downloaded", "items": results, "export_dir": str(export_dir)}
+    return {
+        "entry": word,
+        "status": "downloaded",
+        "items": payload["items"],
+        "export_dir": payload["export_dir"],
+    }
+
+
+async def _process_media_download_batch(
+    session: AsyncSession,
+    settings: Settings,
+    entries: list[EntryModel],
+    *,
+    missing_only: bool,
+    batch_label: str,
+    on_tick: Callable[[ProgressTick], None] | None = None,
+    failure_logger: MediaDownloadRunLogger | None = None,
+) -> dict[str, Any]:
+    downloaded_items = 0
+    failed_items = 0
+    skipped_items = 0
+    entries_ok = 0
+    entry_errors = 0
+    errors: list[dict[str, str]] = []
+    total = len(entries)
+
+    for index, row in enumerate(entries, start=1):
+        try:
+            result = await _download_media_rows_for_entry(
+                session,
+                settings,
+                row,
+                missing_only=missing_only,
+                failure_logger=failure_logger,
+            )
+        except Exception as exc:  # noqa: BLE001 — batch continues
+            errors.append({"entry": row.entry, "error": str(exc)})
+            entry_errors += 1
+            if failure_logger is not None:
+                failure_logger.log_failure(
+                    {
+                        "entry": row.entry,
+                        "entry_id": row.id,
+                        "url": "",
+                        "kind": "",
+                        "error": str(exc),
+                        "source": "entry",
+                    }
+                )
+            if on_tick is not None:
+                on_tick(
+                    ProgressTick(
+                        done=index,
+                        total=total,
+                        extracted=downloaded_items,
+                        skipped=skipped_items,
+                        failed=failed_items + entry_errors,
+                    )
+                )
+            continue
+        await session.commit()
+        entries_ok += 1
+        for item in result["items"]:
+            status = item.get("status")
+            if status == "skipped":
+                skipped_items += 1
+            elif status == "downloaded":
+                downloaded_items += 1
+            elif status == "failed":
+                failed_items += 1
+                err = item.get("error")
+                if err:
+                    errors.append(
+                        {
+                            "entry": row.entry,
+                            "url": str(item.get("url", "")),
+                            "error": str(err),
+                        }
+                    )
+        if on_tick is not None:
+            on_tick(
+                ProgressTick(
+                    done=index,
+                    total=total,
+                    extracted=downloaded_items,
+                    skipped=skipped_items,
+                    failed=failed_items + entry_errors,
+                )
+            )
+        elif index % 25 == 0:
+            print(f"… {batch_label} {index}/{total} entries", flush=True)
+
+    return {
+        "entries_selected": len(entries),
+        "entries_processed": entries_ok,
+        "items_downloaded": downloaded_items,
+        "items_skipped": skipped_items,
+        "items_failed": failed_items,
+        "errors": errors,
+    }
+
+
+async def download_all_entry_media(
+    session: AsyncSession,
+    settings: Settings,
+    *,
+    confirm: bool,
+    limit: int = 500,
+    offset: int = 0,
+    missing_only: bool = True,
+    run_all: bool = False,
+    progress_hooks: MediaDownloadProgressHooks | None = None,
+    failure_logger: MediaDownloadRunLogger | None = None,
+) -> dict[str, Any]:
+    summary = await _media_download_summary(session)
+    if not confirm:
+        return {
+            "status": "preview",
+            "message": "Call again with --confirm (add --all to run every batch until done)",
+            "export_dir": str(settings.media_export_dir),
+            **summary,
+            "batch": {
+                "limit": limit,
+                "offset": offset,
+                "missing_only": missing_only,
+                "run_all": run_all,
+            },
+        }
+
+    totals = {
+        "batches": 0,
+        "entries_processed": 0,
+        "items_downloaded": 0,
+        "items_skipped": 0,
+        "items_failed": 0,
+    }
+    all_errors: list[dict[str, str]] = []
+    page_offset = offset
+    entries_pending_at_start = await _count_entries_for_media_download(
+        session,
+        missing_only=missing_only,
+    )
+    batch_total_est = (
+        CatalogJobProgress.estimate_batch_count(entries_pending_at_start, limit)
+        if run_all
+        else 1
+    )
+    use_rich = progress_hooks is not None
+
+    while True:
+        # Pending set shrinks as local_path is filled — always take from the start.
+        query_offset = 0 if missing_only else page_offset
+        entries = await _list_entry_rows_for_media_download(
+            session,
+            limit=limit,
+            offset=query_offset,
+            missing_only=missing_only,
+        )
+        if not entries:
+            break
+
+        batch_index = totals["batches"] + 1
+        batch_label = f"media batch {batch_index}"
+        if progress_hooks and progress_hooks.on_batch_start:
+            progress_hooks.on_batch_start(
+                batch_index=batch_index,
+                batch_total=batch_total_est if run_all else 1,
+                item_total=len(entries),
+                corpus_pending=summary["media_rows_missing_local_path"],
+                entries_pending=entries_pending_at_start,
+            )
+        elif not use_rich:
+            print(
+                f"… {batch_label}: {len(entries)} entries "
+                f"(missing rows ≈ {summary.get('media_rows_missing_local_path', '?')})",
+                flush=True,
+            )
+
+        totals["batches"] += 1
+        batch_stats = await _process_media_download_batch(
+            session,
+            settings,
+            entries,
+            missing_only=missing_only,
+            batch_label=batch_label,
+            on_tick=progress_hooks.on_tick if progress_hooks else None,
+            failure_logger=failure_logger,
+        )
+        if failure_logger is not None:
+            failure_logger.log_batch_summary(
+                {
+                    "batch_index": batch_index,
+                    "entries_selected": batch_stats["entries_selected"],
+                    "entries_processed": batch_stats["entries_processed"],
+                    "items_downloaded": batch_stats["items_downloaded"],
+                    "items_skipped": batch_stats["items_skipped"],
+                    "items_failed": batch_stats["items_failed"],
+                }
+            )
+        if progress_hooks and progress_hooks.on_batch_finish:
+            progress_hooks.on_batch_finish(**batch_stats)
+        totals["entries_processed"] += batch_stats["entries_processed"]
+        totals["items_downloaded"] += batch_stats["items_downloaded"]
+        totals["items_skipped"] += batch_stats["items_skipped"]
+        totals["items_failed"] += batch_stats["items_failed"]
+        all_errors.extend(batch_stats["errors"])
+
+        summary = await _media_download_summary(session)
+        if run_all:
+            remaining_entries = max(
+                0, entries_pending_at_start - totals["entries_processed"]
+            )
+            batch_total_est = CatalogJobProgress.estimate_batch_count(
+                remaining_entries, limit
+            )
+        if not run_all:
+            break
+        if missing_only and summary["media_rows_missing_local_path"] == 0:
+            break
+        if not missing_only:
+            page_offset += len(entries)
+            if len(entries) < limit:
+                break
+
+    result: dict[str, Any] = {
+        "status": "completed",
+        "export_dir": str(settings.media_export_dir),
+        "run_all": run_all,
+        "batch": {
+            "limit": limit,
+            "start_offset": offset,
+            "missing_only": missing_only,
+            **totals,
+        },
+        "errors_sample": all_errors[:20],
+        **summary,
+    }
+    if failure_logger is not None:
+        manifest = failure_logger.finalize(totals=totals, summary=summary)
+        result["run_log_dir"] = str(failure_logger.run_dir)
+        result["failures_log"] = str(failure_logger.failures_path)
+        result["run_manifest"] = str(manifest)
+    return result
