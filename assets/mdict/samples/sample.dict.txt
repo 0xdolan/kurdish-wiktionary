@@ -1,0 +1,7 @@
+brave
+<link rel="stylesheet" type="text/css" href="css/wiktionary.css" />
+<article class="wikt-entry"><header class="wikt-header"><h1 class="wikt-headword">brave</h1><div class="wikt-meta-row"><span class="wikt-pos">adjective</span><span class="wikt-pos">verb</span></div><div class="wikt-meta-row"><span class="wikt-ipa">/breɪv/</span></div></header><h2 class="wikt-section">Definitions</h2><ol class="wikt-definitions"><li>Strong in the face of fear; courageous.</li></ol></article>
+</>
+braver
+@@@LINK=brave
+</>

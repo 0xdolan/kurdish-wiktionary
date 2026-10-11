@@ -259,13 +259,11 @@ def _gather_section_fields(root: LexborNode) -> tuple[dict[str, list[str]], dict
         if not label:
             continue
         bucket = _section_bucket(label)
-        if bucket not in buckets and bucket not in ("etymology", "inflection"):
-            continue
         items, html_frag = _content_after_heading(heading)
         if bucket in buckets:
             buckets[bucket].extend(items)
         key = _normalize_heading(label)
-        if html_frag:
+        if html_frag and key:
             section_html[key] = html_frag
 
     for key in buckets:

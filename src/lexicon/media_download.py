@@ -7,10 +7,15 @@ import httpx
 from src.extraction.zim_media import local_media_relative_path, resolve_media_href
 from src.extraction.zim_reader import ZimReader
 
+_WIKIMEDIA_USER_AGENT = (
+    "wiktionary-to-mdx/1.0 (offline dictionary builder; contact: local-dev)"
+)
+
 
 async def fetch_remote_bytes(url: str, *, timeout: float = 60.0) -> bytes:
+    headers = {"User-Agent": _WIKIMEDIA_USER_AGENT}
     async with httpx.AsyncClient(follow_redirects=True, timeout=timeout) as client:
-        response = await client.get(url)
+        response = await client.get(url, headers=headers)
         response.raise_for_status()
         return response.content
 
