@@ -74,6 +74,28 @@ Restore on a fresh volume with `pg_restore` (test on a non-production clone firs
 | Migrations fail on start | Old volume schema | `docker compose down -v` (destroys data) or manual Alembic repair |
 | Slow `GET /words` on ZIM | Full-archive scan | Use `X-Data-Source: sql` after ingest; see [PERFORMANCE.md](./PERFORMANCE.md) |
 | Rate limit 429 | Default 120 RPM | Raise `RATE_LIMIT_RPM` in `.env` for local dev |
+| `Documents/wikitionary_to_mdx/` reappears (root-owned, only `zim/`) | Old Compose project **`wikitionary-to-mdx`** still running from the misspelled path | See [Legacy typo folder cleanup](#legacy-typo-folder-cleanup) |
+
+### Legacy typo folder cleanup
+
+An earlier repo rename left a Docker Compose project named **`wikitionary-to-mdx`** (typo). Its API container bind-mounts `./zim` from that path; Docker creates the host directory as **root**, so the empty folder keeps coming back.
+
+Always run Compose from the real tree:
+
+```bash
+cd /home/dolan/Documents/wiktionary_to_mdx
+docker compose up -d postgres api
+```
+
+Remove the old stack and folder (one-time):
+
+```bash
+docker rm -f wikitionary-to-mdx-api-1 wikitionary-to-mdx-postgres-1 2>/dev/null || true
+docker volume rm wikitionary-to-mdx_postgres_data   # optional: orphan DB volume from typo project
+sudo rm -rf /home/dolan/Documents/wikitionary_to_mdx
+```
+
+Confirm only the correct project remains: `docker ps -a --filter name=wiktionary-to-mdx` should list **`wiktionary-to-mdx-*`**, not `wikitionary-to-mdx-*`.
 
 ## Raw-text catalog (wordlist → SQL)
 
