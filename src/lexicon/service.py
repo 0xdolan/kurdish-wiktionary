@@ -17,7 +17,7 @@ from src.extraction.normalize import normalize_entry_key
 from src.extraction.parse_page import parse_wiktionary_page
 from src.extraction.zim_media import local_media_relative_path, resolve_media_href
 from src.extraction.zim_reader import ZimReader
-from src.lexicon.media_download import download_media_item
+from src.lexicon.media_download import MediaFetchMode, download_media_item
 from src.lexicon.media_run_log import MediaDownloadRunLogger
 from src.repository.db.mappers import entry_model_to_schema
 from src.repository.db.models import EntryModel
@@ -615,7 +615,10 @@ async def _download_media_rows_for_entry(
     *,
     missing_only: bool,
     failure_logger: MediaDownloadRunLogger | None = None,
+    fetch_mode: MediaFetchMode = "all",
+    zim_paths: list[Path] | None = None,
 ) -> dict[str, Any]:
+    archives = zim_paths if zim_paths is not None else resolve_zim_paths(settings)
     payload = await asyncio.to_thread(_fetch_zim_article, settings, row.entry)
     items = await list_entry_media(session, row.entry) or []
     if not items:
@@ -646,14 +649,18 @@ async def _download_media_rows_for_entry(
             entry_normalized=row.entry_normalized,
             kind=kind,
             url=url,
-            zim_path=Path(payload.zim_path),
+            zim_paths=archives,
             article_zim_path=payload.article_path,
             reuse_if_same_size=missing_only,
+            fetch_mode=fetch_mode,
         )
         merged = {**item, **outcome}
         if outcome.get("status") == "reused":
             merged["status"] = "skipped"
             merged["local_path"] = outcome.get("local_path")
+            skipped += 1
+        elif outcome.get("status") == "deferred":
+            merged["status"] = "skipped"
             skipped += 1
         elif outcome.get("local_path"):
             merged["status"] = "downloaded"
@@ -864,6 +871,8 @@ async def _process_media_download_batch(
     batch_label: str,
     on_tick: Callable[[ProgressTick], None] | None = None,
     failure_logger: MediaDownloadRunLogger | None = None,
+    fetch_mode: MediaFetchMode = "all",
+    zim_paths: list[Path] | None = None,
 ) -> dict[str, Any]:
     downloaded_items = 0
     failed_items = 0
@@ -881,6 +890,8 @@ async def _process_media_download_batch(
                 row,
                 missing_only=missing_only,
                 failure_logger=failure_logger,
+                fetch_mode=fetch_mode,
+                zim_paths=zim_paths,
             )
         except Exception as exc:  # noqa: BLE001 — batch continues
             errors.append({"entry": row.entry, "error": str(exc)})
@@ -960,6 +971,7 @@ async def download_all_entry_media(
     run_all: bool = False,
     progress_hooks: MediaDownloadProgressHooks | None = None,
     failure_logger: MediaDownloadRunLogger | None = None,
+    fetch_mode: MediaFetchMode = "all",
 ) -> dict[str, Any]:
     summary = await _media_download_summary(session)
     if not confirm:
@@ -973,6 +985,7 @@ async def download_all_entry_media(
                 "offset": offset,
                 "missing_only": missing_only,
                 "run_all": run_all,
+                "fetch_mode": fetch_mode,
             },
         }
 
@@ -995,6 +1008,7 @@ async def download_all_entry_media(
         else 1
     )
     use_rich = progress_hooks is not None
+    zim_paths = resolve_zim_paths(settings)
 
     while True:
         # Pending set shrinks as local_path is filled — always take from the start.
@@ -1034,6 +1048,8 @@ async def download_all_entry_media(
             batch_label=batch_label,
             on_tick=progress_hooks.on_tick if progress_hooks else None,
             failure_logger=failure_logger,
+            fetch_mode=fetch_mode,
+            zim_paths=zim_paths,
         )
         if failure_logger is not None:
             failure_logger.log_batch_summary(
@@ -1075,10 +1091,12 @@ async def download_all_entry_media(
         "status": "completed",
         "export_dir": str(settings.media_export_dir),
         "run_all": run_all,
+        "fetch_mode": fetch_mode,
         "batch": {
             "limit": limit,
             "start_offset": offset,
             "missing_only": missing_only,
+            "fetch_mode": fetch_mode,
             **totals,
         },
         "errors_sample": all_errors[:20],

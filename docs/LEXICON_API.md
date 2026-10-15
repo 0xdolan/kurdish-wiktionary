@@ -107,6 +107,13 @@ uv run python -m src.lexicon media-download-all --confirm --all --force  # re-fe
 
 With `--confirm`, each run writes a failure JSONL under `build/media/state/runs/media-download-<timestamp>/failures.jsonl` (override with `MEDIA_DOWNLOAD_STATE_DIR`; Wikimedia 429/5xx are retried with backoff). Existing files are reused when on-disk size matches the ZIM payload or remote `Content-Length`.
 
+Most `entry_media` URLs are ZIM-local (`./_assets_/…`); ~29% are `https://upload.wikimedia.org/…` and need the network. Use **maxi** in `ZIM_PATHS`. Faster two-phase bulk:
+
+```bash
+uv run python -m src.lexicon media-download-all --confirm --all --zim-only    # local ZIM reads first
+uv run python -m src.lexicon media-download-all --confirm --all --remote-only # then Wikimedia remainder
+```
+
 ```bash
 uv run python -m src.lexicon sparse --mode missing_relations --limit 50
 ```

@@ -5,8 +5,11 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Callable
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlparse
+
+from src.catalog.zim_paths import sort_zim_paths_for_extract
+from src.extraction.zim_reader import ZimReader
 
 _WIKI_FILE = re.compile(r"/wiki/(?:File|Dosya):(.+)", re.I)
 _SPECIAL_FILE = re.compile(r"Special:FilePath/(.+)", re.I)
@@ -69,6 +72,73 @@ def zim_path_candidates(article_zim_path: str, href: str) -> list[str]:
             seen.add(normalized)
             ordered.append(normalized)
     return ordered
+
+
+def wikimedia_url_zim_i_candidates(url: str) -> list[str]:
+    """Guess ``I/…`` ZIM paths for a Commons / upload.wikimedia.org URL."""
+    segments = [unquote(part) for part in urlparse(url).path.split("/") if part]
+    candidates: list[str] = []
+    for segment in reversed(segments):
+        if "." not in segment:
+            continue
+        title = segment.replace(" ", "_")
+        candidates.append(f"I/{title}")
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for path in candidates:
+        if path not in seen:
+            seen.add(path)
+            ordered.append(path)
+    return ordered
+
+
+def resolve_media_href_in_archives(
+    *,
+    article_zim_path: str,
+    href: str,
+    zim_paths: list[Path],
+) -> dict[str, str]:
+    """
+    Resolve href to ZIM bytes in any configured archive (maxi first), else remote/unresolved.
+    """
+    href = href.strip()
+    if href.startswith("//"):
+        href = f"https:{href}"
+
+    ordered_archives = sort_zim_paths_for_extract(
+        [p.expanduser().resolve() for p in zim_paths if p.is_file()]
+    )
+
+    if href.startswith("http://") or href.startswith("https://"):
+        for archive in ordered_archives:
+            reader = ZimReader(archive)
+            for candidate in wikimedia_url_zim_i_candidates(href):
+                if reader.has_path(candidate):
+                    return {
+                        "source": "zim",
+                        "zim_path": candidate,
+                        "zim_archive": str(archive),
+                        "url": href,
+                    }
+        return {"source": "remote", "fetch_url": href, "url": href}
+
+    candidates = zim_path_candidates(article_zim_path, href)
+    for archive in ordered_archives:
+        reader = ZimReader(archive)
+        for candidate in candidates:
+            if reader.has_path(candidate):
+                return {
+                    "source": "zim",
+                    "zim_path": candidate,
+                    "zim_archive": str(archive),
+                    "url": href,
+                }
+
+    return {
+        "source": "unresolved",
+        "url": href,
+        "hint": "Try maxi ZIM or Wikimedia URL; no matching ZIM entry for href",
+    }
 
 
 def resolve_media_href(

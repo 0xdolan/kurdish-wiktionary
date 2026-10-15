@@ -81,6 +81,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Repeat batches until no pending media (requires --confirm)",
     )
+    fetch = media_all.add_mutually_exclusive_group()
+    fetch.add_argument(
+        "--zim-only",
+        action="store_true",
+        help="Only read media from ZIM archives (maxi/nopic); skip Wikimedia HTTP",
+    )
+    fetch.add_argument(
+        "--remote-only",
+        action="store_true",
+        help="Only fetch remote URLs; skip items available in ZIM",
+    )
 
     sparse = sub.add_parser("sparse", help="Diagnostics for empty / stale rows")
     sparse.add_argument("--limit", type=int, default=50)
@@ -178,6 +189,11 @@ async def async_main(args: argparse.Namespace) -> int:
             if args.all and not args.confirm:
                 print("media-download-all --all requires --confirm", file=sys.stderr)
                 return 2
+            fetch_mode = "all"
+            if args.zim_only:
+                fetch_mode = "zim_only"
+            elif args.remote_only:
+                fetch_mode = "remote_only"
             if args.confirm:
                 console = Console()
                 run_logger = MediaDownloadRunLogger(settings.media_download_state_dir)
@@ -196,6 +212,7 @@ async def async_main(args: argparse.Namespace) -> int:
                         run_all=args.all,
                         progress_hooks=hooks,
                         failure_logger=run_logger,
+                        fetch_mode=fetch_mode,
                     )
                 if payload.get("failures_log"):
                     console.print(
@@ -210,6 +227,7 @@ async def async_main(args: argparse.Namespace) -> int:
                     offset=args.offset,
                     missing_only=not args.force,
                     run_all=args.all,
+                    fetch_mode=fetch_mode,
                 )
             print(json.dumps(payload, ensure_ascii=False, indent=2))
             return 0

@@ -3,11 +3,14 @@ from __future__ import annotations
 import asyncio
 import time
 from pathlib import Path
+from typing import Literal
 
 import httpx
 
-from src.extraction.zim_media import local_media_relative_path, resolve_media_href
+from src.extraction.zim_media import local_media_relative_path, resolve_media_href_in_archives
 from src.extraction.zim_reader import ZimReader
+
+MediaFetchMode = Literal["all", "zim_only", "remote_only"]
 
 _WIKIMEDIA_USER_AGENT = (
     "wiktionary-to-mdx/1.0 (offline dictionary builder; contact: local-dev)"
@@ -121,31 +124,49 @@ async def download_media_item(
     entry_normalized: str,
     kind: str,
     url: str,
-    zim_path: Path | None,
+    zim_paths: list[Path],
     article_zim_path: str | None,
     reuse_if_same_size: bool = True,
+    fetch_mode: MediaFetchMode = "all",
 ) -> dict[str, str | int | None]:
     """
     Write one asset under ``export_dir`` and return ``local_path`` (relative to export_dir).
     """
     resolved: dict[str, str] = {"source": "remote", "fetch_url": url, "url": url}
-    if zim_path is not None and article_zim_path:
-        reader = ZimReader(zim_path)
-        resolved = resolve_media_href(
+    if zim_paths and article_zim_path:
+        resolved = resolve_media_href_in_archives(
             article_zim_path=article_zim_path,
             href=url,
-            has_zim_path=reader.has_path,
+            zim_paths=zim_paths,
         )
+
+    source = resolved.get("source")
+    if fetch_mode == "zim_only" and source != "zim":
+        return {
+            "local_path": None,
+            "source": source or "remote",
+            "status": "deferred",
+            "error": "skipped in zim_only mode (needs remote or unresolved)",
+        }
+    if fetch_mode == "remote_only" and source == "zim":
+        return {
+            "local_path": None,
+            "source": "zim",
+            "status": "deferred",
+            "error": "skipped in remote_only mode (available in ZIM)",
+        }
 
     rel = local_media_relative_path(entry_normalized=entry_normalized, kind=kind, url=url)
     target = export_dir / rel
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    if resolved.get("source") == "zim" and zim_path is not None:
+    if source == "zim":
         zim_entry = resolved.get("zim_path")
-        if not zim_entry:
+        archive_raw = resolved.get("zim_archive")
+        archive = Path(str(archive_raw)) if archive_raw else (zim_paths[0] if zim_paths else None)
+        if not zim_entry or archive is None:
             return {"local_path": None, "error": "missing zim_path", "source": "zim"}
-        payload = read_zim_bytes(zim_path, zim_entry)
+        payload = read_zim_bytes(archive, zim_entry)
         if payload is None:
             return {"local_path": None, "error": "zim read failed", "source": "zim"}
         if reuse_if_same_size and target.is_file():
@@ -166,7 +187,7 @@ async def download_media_item(
             "bytes": len(payload),
         }
 
-    if resolved.get("source") == "remote":
+    if source == "remote":
         fetch_url = resolved.get("fetch_url", url)
         if reuse_if_same_size and target.is_file():
             expected = await remote_content_length(fetch_url)
