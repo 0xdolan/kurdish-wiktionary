@@ -65,7 +65,7 @@ Attach `social-card-dark.png`.
 >
 > Some things I found: the ZIM dumps contain no audio at all, so recordings have to come from Commons at a polite rate. Their ".jpg" images are actually WebP. And about a fifth of entries are bot-generated from translation tables, which the wiki discloses in a template, so I expose that as a flag. It's one of the most useful filters in the data.
 >
-> Code: https://github.com/0xdolan/wiktionary_to_mdx Data: <KAGGLE_URL>
+> Code: https://github.com/0xdolan/kurdish-wiktionary Data: <KAGGLE_URL>
 
 ### Reddit (r/kurdish, r/datasets, r/LanguageTechnology)
 
@@ -122,7 +122,7 @@ Don't claim "largest", "complete" or "official".
 
 **How accurate is it?** It's community-written, and part of it is machine-made. Treat it as a useful resource, not an authority. `QUALITY.md` has the details.
 
-**I found a mistake.** Fix it on [Wîkîferheng](https://ku.wiktionary.org), and it will reach the next release. Report parsing bugs on [GitHub](https://github.com/0xdolan/wiktionary_to_mdx/issues).
+**I found a mistake.** Fix it on [Wîkîferheng](https://ku.wiktionary.org), and it will reach the next release. Report parsing bugs on [GitHub](https://github.com/0xdolan/kurdish-wiktionary/issues).
 
 ## Measures of success
 

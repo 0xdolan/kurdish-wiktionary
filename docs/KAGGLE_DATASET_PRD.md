@@ -2,7 +2,7 @@
 
 **Document type:** Product requirements (review before implementation)  
 **Status:** Superseded by the implementation in `src/dataset/`. See [DATASET_KAGGLE_GUIDE.md](./DATASET_KAGGLE_GUIDE.md) and [DATASET_LOCAL_GUIDE.md](./DATASET_LOCAL_GUIDE.md)  
-**Owner:** wiktionary_to_mdx maintainers  
+**Owner:** kurdish-wiktionary maintainers  
 **Last updated:** 2026-10-11  
 
 ---
@@ -214,7 +214,7 @@ Every release includes **`manifest.json`** at bundle root:
   "dataset_slug": "ku-wiktionary-structured",
   "build_timestamp_utc": "2026-10-11T12:00:00Z",
   "git_commit": "<sha>",
-  "pipeline_repo": "https://github.com/0xdolan/wiktionary_to_mdx",
+  "pipeline_repo": "https://github.com/0xdolan/kurdish-wiktionary",
   "zim": {
     "nopic": {"path": "...", "sha256": "...", "uuid": "...", "date": "..."},
     "maxi": {"path": "...", "sha256": "...", "uuid": "...", "date": "..."}

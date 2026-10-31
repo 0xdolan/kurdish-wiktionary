@@ -38,7 +38,7 @@ API_MIN_INTERVAL_S = 0.5
 _API_BATCH = 50
 _MAX_ATTEMPTS = 6
 _RETRYABLE = frozenset({429, 500, 502, 503, 504})
-DEFAULT_USER_AGENT = "wiktionary-to-mdx/1.0 (https://github.com/0xdolan/wiktionary_to_mdx) httpx"
+DEFAULT_USER_AGENT = "wiktionary-to-mdx/1.0 (https://github.com/0xdolan/kurdish-wiktionary) httpx"
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 KU_WIKTIONARY_API = "https://ku.wiktionary.org/w/api.php"
 

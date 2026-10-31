@@ -27,7 +27,7 @@ An empty `license` means we could not confirm one. Check the source yourself, or
 
 ## Fonts and software
 
-The dictionary build ships the Manrope and Sahel fonts, each under its own licence. See `css/` and the font licence files in the dictionary resources. The pipeline code lives at [github.com/0xdolan/wiktionary_to_mdx](https://github.com/0xdolan/wiktionary_to_mdx). Source archives come from [Kiwix / openZIM](https://www.kiwix.org).
+The dictionary build ships the Manrope and Sahel fonts, each under its own licence. See `css/` and the font licence files in the dictionary resources. The pipeline code lives at [github.com/0xdolan/kurdish-wiktionary](https://github.com/0xdolan/kurdish-wiktionary). Source archives come from [Kiwix / openZIM](https://www.kiwix.org).
 
 ## Trademarks
 

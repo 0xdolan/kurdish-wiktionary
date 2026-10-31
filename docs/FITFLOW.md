@@ -13,7 +13,7 @@
 | 3 | **T**arget | Use a short-lived branch with a clear prefix (never commit large binaries) |
 | 4 | **F**ormat | Run **`./scripts/ci-local.sh`** before push (mirrors GitHub Actions; pre-push hook enforces) |
 | 5 | **L**og | Write commits that explain **why**; use HEREDOC for messages |
-| 6 | **O**rigin | Push to `origin`; default branch **`main`** (`git@github.com:0xdolan/wiktionary_to_mdx.git`) |
+| 6 | **O**rigin | Push to `origin`; default branch **`main`** (`git@github.com:0xdolan/kurdish-wiktionary.git`) |
 | 7 | **W**orkflow | Pull/rebase, push, open PR with `gh`, delete branch after merge |
 
 ---
@@ -147,12 +147,12 @@ Do **not** push to remote unless the user asked. Do **not** merge PRs unless ask
 |---------|--------|
 | Default branch | `main` |
 | Remote name | `origin` |
-| GitHub URL (SSH) | `git@github.com:0xdolan/wiktionary_to_mdx.git` |
+| GitHub URL (SSH) | `git@github.com:0xdolan/kurdish-wiktionary.git` |
 
 First-time publish from a local repo:
 
 ```bash
-git remote add origin git@github.com:0xdolan/wiktionary_to_mdx.git
+git remote add origin git@github.com:0xdolan/kurdish-wiktionary.git
 git branch -M main
 git push -u origin main
 ```

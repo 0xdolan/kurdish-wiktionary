@@ -18,8 +18,8 @@ No database server, Docker or paid service is needed.
 ## The short version
 
 ```bash
-git clone https://github.com/0xdolan/wiktionary_to_mdx.git
-cd wiktionary_to_mdx
+git clone https://github.com/0xdolan/kurdish-wiktionary.git
+cd kurdish-wiktionary
 uv sync
 ./scripts/fetch-zims.sh
 ./scripts/build-release.sh --skip-download   # Everything except the audio: under an hour
@@ -35,8 +35,8 @@ Results land in `build/release/`.
 ### 1. Get the code
 
 ```bash
-git clone https://github.com/0xdolan/wiktionary_to_mdx.git
-cd wiktionary_to_mdx
+git clone https://github.com/0xdolan/kurdish-wiktionary.git
+cd kurdish-wiktionary
 uv sync
 ```
 

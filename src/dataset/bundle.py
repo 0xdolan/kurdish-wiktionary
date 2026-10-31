@@ -274,7 +274,7 @@ def assemble(
         "dataset_id": metadata["id"],
         "built_at_utc": datetime.now(tz=UTC).isoformat(),
         "git_commit": _git_commit(),
-        "pipeline": "https://github.com/0xdolan/wiktionary_to_mdx",
+        "pipeline": "https://github.com/0xdolan/kurdish-wiktionary",
         "sources": zims,
         "row_counts": report["row_counts"],
         "total_bytes": sum(sizes.values()),

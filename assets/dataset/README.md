@@ -97,6 +97,6 @@ This dataset used to hold 2023 wordlists for Kurdish, Chinese, Japanese, French 
 
 ## Provenance and updates
 
-`manifest.json` records the source ZIM hashes, pipeline commit, row counts and a SHA-256 for every file. To rebuild or update: [github.com/0xdolan/wiktionary_to_mdx](https://github.com/0xdolan/wiktionary_to_mdx).
+`manifest.json` records the source ZIM hashes, pipeline commit, row counts and a SHA-256 for every file. To rebuild or update: [github.com/0xdolan/kurdish-wiktionary](https://github.com/0xdolan/kurdish-wiktionary).
 
 Found a problem? Open an issue there. Corrections to a word belong on [Wîkîferheng](https://ku.wiktionary.org), where everyone benefits, and reach this dataset with the next release.
