@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kurdish Wiktionary: open data</title>
+<meta name="description" content="1,109,037 Kurdish Wiktionary entries as structured open data: SQL, Excel, Parquet, audio and an offline dictionary.">
+<meta property="og:title" content="The Kurdish Wiktionary as open data">
+<meta property="og:description" content="Every section as a table. SQL, Excel, Parquet, audio, and an offline dictionary.">
+<meta property="og:image" content="assets/social-card-dark.png">
+<meta name="theme-color" content="#F6F8F9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1215" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="assets/logo-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+@font-face{font-family:Sahel;font-weight:400;src:url(assets/fonts/Sahel-WOL.woff2) format("woff2")}
+@font-face{font-family:Sahel;font-weight:600;src:url(assets/fonts/Sahel-SemiBold-WOL.woff2) format("woff2")}
+@font-face{font-family:Sahel;font-weight:700;src:url(assets/fonts/Sahel-Bold-WOL.woff2) format("woff2")}
+:root{--bg:#F6F8F9;--surface:#FFFFFF;--raised:#EEF2F4;--ink:#101C22;--muted:#566570;--line:#DDE4E8;--accent:#0B7285;--soft:#E2F3F6;--highlight:#B45309;--on-accent:#FFFFFF;--bar:#0E8AA3;--code:#101C22;--on-code:#E9F0F2;--shadow:0 1px 2px rgba(16,28,34,.05),0 10px 30px rgba(16,28,34,.07);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0A1215;--surface:#121C20;--raised:#1A272C;--ink:#E9F0F2;--muted:#9DAFB7;--line:#27363C;--accent:#5CCBDE;--soft:#123239;--highlight:#F7B955;--on-accent:#06181C;--bar:#25A9C2;--code:#071013;--shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0A1215;--surface:#121C20;--raised:#1A272C;--ink:#E9F0F2;--muted:#9DAFB7;--line:#27363C;--accent:#5CCBDE;--soft:#123239;--highlight:#F7B955;--on-accent:#06181C;--bar:#25A9C2;--code:#071013;--shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);color-scheme:dark}
+/* Screenshots exist per theme; show the one matching the page. */
+.on-dark{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .on-dark{display:block}:root:not([data-theme="light"]) .on-light{display:none}}
+:root[data-theme="dark"] .on-dark{display:block}
+:root[data-theme="dark"] .on-light{display:none}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 18px/1.6 Manrope,Sahel,system-ui,sans-serif}
+[dir="rtl"]{font-family:Sahel,Manrope,system-ui,sans-serif}
+a{color:var(--accent)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:16px 0;gap:16px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:20px;color:inherit;text-decoration:none}
+.plate{display:block;width:50px;height:58px;padding:3px;background:#fff;border:1px solid var(--line);border-radius:8px}
+.top-right{display:flex;align-items:center;gap:18px}
+nav a{margin-left:18px;color:var(--muted);text-decoration:none;font-weight:600;font-size:15px}
+nav a:hover{color:var(--accent)}
+.theme{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 14px;font:600 14px Manrope,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.theme:hover{color:var(--accent);border-color:var(--accent)}
+.hero{display:grid;grid-template-columns:minmax(0,1fr);gap:32px;padding:36px 0 40px;align-items:center}
+h1{font-size:clamp(40px,6.4vw,68px);line-height:1.05;letter-spacing:-.03em;margin:0 0 18px}
+h1 em{font-style:normal;color:var(--accent)}
+.lead{font-size:clamp(18px,2.2vw,21px);color:var(--muted);margin:0 0 26px}
+.cta{display:inline-block;background:var(--accent);color:var(--on-accent);padding:13px 22px;border-radius:10px;font-weight:700;text-decoration:none;margin:0 10px 10px 0}
+.cta:hover{filter:brightness(1.08)}
+.cta.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.cta.alt:hover{border-color:var(--accent);color:var(--accent);filter:none}
+.hero-shot img{width:100%;max-height:560px;object-fit:cover;object-position:top;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 60px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.stat b{display:block;font-size:32px;letter-spacing:-.02em;line-height:1.1}
+.stat span{color:var(--muted);font-size:15px}
+section{margin:0 0 64px}
+h2{font-size:clamp(28px,4vw,38px);letter-spacing:-.02em;line-height:1.15;margin:0 0 10px}
+.sub{color:var(--muted);max-width:44em;margin:0 0 24px}
+.shot{width:100%;border-radius:12px;border:1px solid var(--line);box-shadow:var(--shadow)}
+figure{margin:0}
+figcaption{font-size:15px;color:var(--muted);margin-top:10px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:24px}
+.stack{display:grid;gap:24px;align-content:start}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px 16px}
+table{border-collapse:collapse;width:100%;font-size:16px}
+th,td{text-align:left;padding:11px 12px 11px 0;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child>th,tr:last-child>td{border-bottom:0}
+thead th{color:var(--muted);font-size:14px}
+code,pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px}
+td code{color:var(--accent)}
+pre{background:var(--code);color:var(--on-code);padding:18px;border-radius:14px;overflow-x:auto;margin:0}
+.bars th{font-weight:600;white-space:nowrap;width:1%;padding-right:16px}
+.bar-cell{width:100%;padding-right:12px;vertical-align:middle}
+.bar{display:block;height:12px;background:var(--bar);border-radius:0 4px 4px 0;min-width:2px}
+.value{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:0}
+.bars tr:hover th,.bars tr:hover .value{color:var(--accent)}
+ul.limits{padding-left:20px;margin:0}
+ul.limits li{margin-bottom:10px}
+footer{border-top:1px solid var(--line);padding:28px 0 48px;color:var(--muted);font-size:15px}
+@media (min-width:900px){.hero{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:48px}}
+@media (max-width:760px){nav{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#"><img class="plate" src="assets/wiktionary-logo-ku.svg" alt="Wîkîferheng">Kurdish Wiktionary</a>
+    <div class="top-right">
+      <nav><a href="#inside">What's inside</a><a href="#formats">Formats</a><a href="#start">Quick start</a><a href="#limits">Limits</a></nav>
+      <button class="theme" type="button" aria-label="Change theme">Theme</button>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div>
+      <h1>The Kurdish Wiktionary<br>as <em>open data</em></h1>
+      <p class="lead">Wîkîferheng as clean tables, one for each kind of section an entry can have, plus recordings and a ready-made offline dictionary.</p>
+      <a class="cta" href="https://www.kaggle.com/datasets/zeroxdolan/wiktionary-wordlists">Get the data on Kaggle</a>
+      <a class="cta alt" href="https://github.com/0xdolan/wiktionary_to_mdx">Build it yourself</a>
+    </div>
+    <div class="hero-shot">
+      <img class="on-light" src="assets/entry-heval-phone-light.png" alt="The entry heval on a phone: voice cards, a photo and definitions, in the light theme">
+      <img class="on-dark" src="assets/entry-heval-phone-dark.png" alt="The entry heval on a phone: voice cards, a photo and definitions, in the dark theme">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b>1.1M+</b><span>dictionary entries</span></div>
+    <div class="stat"><b>444K+</b><span>Kurmancî entries</span></div>
+    <div class="stat"><b>1.2M+</b><span>definitions</span></div>
+    <div class="stat"><b>799K+</b><span>translations</span></div>
+    <div class="stat"><b>45K+</b><span>recordings, many languages</span></div>
+  </div>
+
+  <section id="inside">
+    <h2>Structured the way the wiki is</h2>
+    <p class="sub">Each wiki page nests language, then part of speech, then subsections. The dataset keeps that tree and gives each section type its own table.</p>
+    <div class="scroll"><table>
+      <thead><tr><th scope="col">Wiki section</th><th scope="col">Kurmancî heading</th><th scope="col">Table</th></tr></thead>
+      <tbody>
+        <tr><td>Definitions</td><td>Navdêr, Lêker, Rengdêr, ...</td><td><code>senses</code>, <code>headwords</code>, <code>examples</code></td></tr>
+        <tr><td>Pronunciation</td><td>Bilêvkirin</td><td><code>pronunciations</code>, <code>media</code></td></tr>
+        <tr><td>Etymology</td><td>Etîmolojî</td><td><code>etymologies</code></td></tr>
+        <tr><td>Declension, conjugation</td><td>Tewandin</td><td><code>inflection_forms</code>, <code>inflection_tables</code></td></tr>
+        <tr><td>Translations</td><td>Werger</td><td><code>translations</code></td></tr>
+        <tr><td>Synonyms, antonyms, derived terms, other scripts</td><td>Hevmane, Dijmane, Jê, Bi alfabeyên din</td><td><code>relations</code></td></tr>
+        <tr><td>Literary citations</td><td>Ji wêjeyê</td><td><code>quotations</code></td></tr>
+        <tr><td>Everything, as text and HTML</td><td>all</td><td><code>sections</code>, <code>section_html</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Words from many languages, explained in Kurdish</h2>
+    <p class="sub">Entries by language, top 10 of 3.7K+ language codes. Filter on <code>language_code</code> to get the ones you want.</p>
+    <div class="scroll"><table class="bars"><tbody><tr title="Kurmancî: 444,202 entries, 509,683 definitions"><th scope="row">Kurmancî</th><td class="bar-cell"><span class="bar" style="width:100.0%"></span></td><td class="value">444,202</td></tr><tr title="Îngilîzî: 140,556 entries, 149,546 definitions"><th scope="row">Îngilîzî</th><td class="bar-cell"><span class="bar" style="width:31.6%"></span></td><td class="value">140,556</td></tr><tr title="Tirkî: 71,911 entries, 98,806 definitions"><th scope="row">Tirkî</th><td class="bar-cell"><span class="bar" style="width:16.2%"></span></td><td class="value">71,911</td></tr><tr title="Almanî: 46,252 entries, 50,145 definitions"><th scope="row">Almanî</th><td class="bar-cell"><span class="bar" style="width:10.4%"></span></td><td class="value">46,252</td></tr><tr title="Farisî: 19,658 entries, 21,321 definitions"><th scope="row">Farisî</th><td class="bar-cell"><span class="bar" style="width:4.4%"></span></td><td class="value">19,658</td></tr><tr title="Polonî: 15,441 entries, 15,450 definitions"><th scope="row">Polonî</th><td class="bar-cell"><span class="bar" style="width:3.5%"></span></td><td class="value">15,441</td></tr><tr title="Japonî: 13,403 entries, 13,430 definitions"><th scope="row">Japonî</th><td class="bar-cell"><span class="bar" style="width:3.0%"></span></td><td class="value">13,403</td></tr><tr title="Latînî: 10,787 entries, 10,837 definitions"><th scope="row">Latînî</th><td class="bar-cell"><span class="bar" style="width:2.4%"></span></td><td class="value">10,787</td></tr><tr title="Fransî: 6,771 entries, 7,212 definitions"><th scope="row">Fransî</th><td class="bar-cell"><span class="bar" style="width:1.5%"></span></td><td class="value">6,771</td></tr><tr title="Sirboxirwatî: 6,632 entries, 6,644 definitions"><th scope="row">Sirboxirwatî</th><td class="bar-cell"><span class="bar" style="width:1.5%"></span></td><td class="value">6,632</td></tr></tbody></table></div>
+  </section>
+
+  <section id="formats">
+    <h2>Use it the way you work</h2>
+    <p class="sub">Parquet, CSV and JSONL for code. Excel for browsing. SQLite and PostgreSQL for queries. MDX and MDD for GoldenDict and MDict.</p>
+    <div class="two">
+      <figure>
+        <img class="shot on-light" src="assets/entry-heval-light.png" alt="The entry heval in the offline dictionary, light theme" loading="lazy">
+        <img class="shot on-dark" src="assets/entry-heval-dark.png" alt="The entry heval in the offline dictionary, dark theme" loading="lazy">
+        <figcaption>The offline dictionary: a card per voice, images, full tables, and light and dark themes.</figcaption>
+      </figure>
+      <div class="stack">
+        <figure><img class="shot" src="assets/excel-dictionary.png" alt="A spreadsheet of Kurmancî words, parts of speech and definitions" loading="lazy"><figcaption>Excel: a workbook per section, plus ready-to-read Kurmancî and Soranî dictionaries.</figcaption></figure>
+        <figure>
+          <img class="shot on-light" src="assets/sql-inflections-light.png" alt="A SQL query listing the declined forms of heval" loading="lazy">
+          <img class="shot on-dark" src="assets/sql-inflections-dark.png" alt="A SQL query listing the declined forms of heval" loading="lazy">
+          <figcaption>SQL: one SQLite file, or load the same data into PostgreSQL.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <h2>Start in one minute</h2>
+    <pre><code>import pandas as pd
+
+entries = pd.read_parquet("parquet/entries.parquet")
+senses = pd.read_parquet("parquet/senses.parquet")
+
+kurmanci = entries[entries.language_code == "ku"]
+kurmanci.merge(senses, on="entry_id").query("title == 'heval'")[["pos", "definition"]]</code></pre>
+  </section>
+
+  <section id="limits">
+    <h2>Know the limits</h2>
+    <ul class="limits">
+      <li><b>20.41% of entries are marked bot-made</b> from translation tables, and the wiki warns they may contain errors. They are flagged, so you can leave them out.</li>
+      <li><b>Many entries are thin:</b> a one-line gloss or an inflected form. Of 444K+ Kurmancî entries, 155K+ are headwords with a definition.</li>
+      <li><b>Recordings are mostly not Kurdish.</b> About 3.3K+ are Kurmancî. The rest are largely English, German and French.</li>
+      <li><b>Extraction is heuristic.</b> The wiki is written by hand, so expect some oddities. Every release ships a quality report.</li>
+      <li><b>Media licences vary per file.</b> Check the <code>media</code> table before reusing a recording or image.</li>
+    </ul>
+  </section>
+</div>
+<footer><div class="wrap">
+  Text by the contributors of <a href="https://ku.wiktionary.org">Wîkîferheng</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. 1,038,509 pages from the 2026-08-25 snapshot, via <a href="https://www.kiwix.org">Kiwix</a>.<br>
+  This is an independent community project. It is not produced or endorsed by the Wikimedia Foundation or the Wîkîferheng community. Wiktionary and its logo are trademarks of the Wikimedia Foundation. Logo redrawn from <a href="https://commons.wikimedia.org/wiki/File:Wiktionary-logo-ku.png">Wiktionary-logo-ku</a>, CC BY-SA 3.0.
+</div></footer>
+<script>
+(function () {
+  var order = ["auto", "light", "dark"];
+  var labels = { auto: "Auto theme", light: "Light", dark: "Dark" };
+  var button = document.querySelector(".theme");
+  var root = document.documentElement;
+  var theme = "auto";
+  try { theme = localStorage.getItem("wk-theme") || "auto"; } catch (e) {}
+  function apply(next) {
+    theme = next;
+    if (next === "auto") root.removeAttribute("data-theme");
+    else root.setAttribute("data-theme", next);
+    button.textContent = labels[next];
+  }
+  apply(theme);
+  button.addEventListener("click", function () {
+    var next = order[(order.indexOf(theme) + 1) % order.length];
+    try { localStorage.setItem("wk-theme", next); } catch (e) {}
+    apply(next);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "Please cite this dataset, and credit the Wîkîferheng contributors, if you use it."
+type: dataset
+title: "{{title}}"
+version: "{{version}}"
+license: CC-BY-SA-4.0
+url: "https://www.kaggle.com/datasets/{{owner}}/{{slug}}"
+repository-code: "https://github.com/0xdolan/wiktionary_to_mdx"
+authors:
+  - name: "Wîkîferheng contributors"
+    website: "https://ku.wiktionary.org"
+  - name: "wiktionary_to_mdx maintainers"
+    website: "https://github.com/0xdolan/wiktionary_to_mdx"
+keywords:
+  - Kurdish
+  - Kurmanji
+  - Sorani
+  - Wiktionary
+  - lexicon
+  - dictionary

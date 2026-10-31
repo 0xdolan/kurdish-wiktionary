@@ -25,7 +25,7 @@
   --wikt-radius: 12px;
   --wikt-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --wikt-font-latin: "Manrope", var(--wikt-font);
-  --wikt-font-arabic: "Sahel", "Noto Naskh Arabic", var(--wikt-font);
+  --wikt-font-arabic: "Sahel", var(--wikt-font);
   /* Spacing scale (4px base) */
   --wikt-space-1: 0.25rem;
   --wikt-space-2: 0.5rem;
@@ -154,7 +154,7 @@ body:has(.wikt-entry) {
   font-weight: 400;
   font-display: swap;
   src: url("../fonts/sahel/Sahel-WOL.woff2") format("woff2");
-  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
 }
 
 @font-face {
@@ -163,7 +163,7 @@ body:has(.wikt-entry) {
   font-weight: 600;
   font-display: swap;
   src: url("../fonts/sahel/Sahel-SemiBold-WOL.woff2") format("woff2");
-  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
 }
 
 @font-face {
@@ -172,7 +172,7 @@ body:has(.wikt-entry) {
   font-weight: 700;
   font-display: swap;
   src: url("../fonts/sahel/Sahel-Bold-WOL.woff2") format("woff2");
-  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
 }
 
 .wikt-entry {
@@ -1944,7 +1944,8 @@ ul.wikt-chip-list .Latn {
 
 @media (max-width: 720px) {
   .wikt-entry-layout {
-    grid-template-columns: 1fr;
+    /* minmax(0, ...): a plain 1fr grows to fit the unwrapped contents row and widens the page. */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--wikt-space-4);
   }
 
@@ -1955,9 +1956,11 @@ ul.wikt-chip-list .Latn {
   .wikt-sidebar {
     align-self: auto;
     min-height: 0;
+    min-width: 0;
   }
 
   .wikt-sidebar-sticky {
+    min-width: 0;
     position: -webkit-sticky;
     position: sticky;
     top: 0;
@@ -2031,4 +2034,83 @@ ul.wikt-chip-list .Latn {
   .wikt-fold {
     scroll-margin-top: 7.5rem;
   }
+}
+
+/* Dataset articles: one fold per language, sections folded inside it. */
+.wikt-lang-fold > summary.wikt-section {
+  font-size: 1.15em;
+  border-bottom: 2px solid #12343b;
+}
+
+.wikt-lang-fold > .wikt-fold-body > .wikt-fold {
+  margin-inline-start: 0.25rem;
+}
+
+.wikt-lead {
+  margin: 0.5rem 0 1rem;
+  color: #475569;
+}
+
+.wikt-entry .wikt-section-html table.audiotable,
+.wikt-entry .wikt-section-html table.audiotable td,
+.wikt-entry .wikt-section-html table.audiotable tr {
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  padding: 0 0.25rem !important;
+  vertical-align: middle;
+}
+
+.wikt-entry .wikt-section-html table.audiotable {
+  width: auto !important;
+  margin: 0 !important;
+}
+
+a.wikt-audio-btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.wikt-section-html figure {
+  float: inline-end;
+  max-width: 260px;
+  margin: 0 0 0.75rem 1rem;
+}
+
+.wikt-section-html figure img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.wikt-section-html figcaption {
+  font-size: 0.85em;
+  color: #475569;
+}
+
+.wikt-attribution {
+  margin-top: 1.5rem;
+  font-size: 0.8em;
+  color: #64748b;
+}
+
+.werger-template-info {
+  font-size: 0.85em;
+  color: #92400e;
+}
+
+/* Right-to-left text: Sahel, with direction detected per paragraph. Latin stays in Manrope. */
+.wikt-section-html li,
+.wikt-section-html dd,
+.wikt-section-html p,
+.wikt-section-html td,
+.wikt-section-html th,
+.wikt-lead {
+  unicode-bidi: plaintext;
+}
+
+.wikt-entry [dir="rtl"],
+.wikt-entry .wikt-rtl {
+  font-family: var(--wikt-font-arabic);
 }

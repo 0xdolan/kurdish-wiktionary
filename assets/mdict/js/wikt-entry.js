@@ -202,7 +202,35 @@
     scheduleSync();
   }
 
+  // Dataset builds omit the sidebar from each record to keep dict.txt small; apps without
+  // JavaScript simply show the article without it.
+  function ensureSidebar(entry) {
+    if (entry.getAttribute("data-sidebar") !== "auto") return;
+    if (entry.querySelector(".wikt-sidebar")) return;
+    var main = entry.querySelector(".wikt-entry-main");
+    if (!main || !main.parentNode) return;
+    var aside = document.createElement("aside");
+    aside.className = "wikt-sidebar";
+    aside.setAttribute("aria-label", "Entry navigation");
+    aside.innerHTML =
+      '<div class="wikt-sidebar-sticky"><div class="wikt-sidebar-tools"><p class="wikt-lang-toggle">' +
+      '<span class="wikt-lang-toggle-heading"><span class="wikt-toggle-ku">Zimanê sernavan</span>' +
+      '<span class="wikt-toggle-en">Section titles</span></span>' +
+      '<label class="wikt-lang-segment"><input type="checkbox" id="wikt-en-labels" class="wikt-lang-segment-input" />' +
+      '<span class="wikt-lang-segment-track"><span class="wikt-lang-segment-option wikt-lang-segment-option--ku">Kurdî</span>' +
+      '<span class="wikt-lang-segment-option wikt-lang-segment-option--en">English</span>' +
+      '<span class="wikt-lang-segment-thumb" aria-hidden="true"></span></span></label>' +
+      '<span class="wikt-lang-toggle-caption"><span class="wikt-toggle-ku">Sernavên bi Kurdî (Kurmancî)</span>' +
+      '<span class="wikt-toggle-en">English section titles</span></span></p></div>' +
+      '<nav class="wikt-toc" aria-label="Sections"><div class="wikt-toc-header">' +
+      '<span class="wikt-toc-icon" aria-hidden="true"></span><p class="wikt-toc-title">' +
+      '<span class="wikt-toc-title-ku">Naverok</span><span class="wikt-toc-title-en">Contents</span></p></div>' +
+      '<div class="wikt-toc-scroll"><ul class="wikt-toc-list"></ul></div></nav></div>';
+    main.parentNode.insertBefore(aside, main);
+  }
+
   function initEntry(entry) {
+    ensureSidebar(entry);
     bindToc(entry);
     setupSidebarPin(entry);
   }
@@ -217,6 +245,8 @@
     if (btn) {
       var src = btn.getAttribute("data-audio-src");
       if (!src) return;
+      // Stops a sound:// link from also firing when this script handles playback.
+      ev.preventDefault();
       var audio = btn._wiktAudio || new Audio(src);
       btn._wiktAudio = audio;
       audio.play();

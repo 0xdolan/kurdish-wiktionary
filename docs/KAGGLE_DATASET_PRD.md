@@ -1,7 +1,7 @@
 # PRD: Kaggle-Ready Kurdish Wiktionary Dataset
 
 **Document type:** Product requirements (review before implementation)  
-**Status:** Draft v0.1  
+**Status:** Superseded by the implementation in `src/dataset/`. See [DATASET_KAGGLE_GUIDE.md](./DATASET_KAGGLE_GUIDE.md) and [DATASET_LOCAL_GUIDE.md](./DATASET_LOCAL_GUIDE.md)  
 **Owner:** wiktionary_to_mdx maintainers  
 **Last updated:** 2026-10-11  
 
@@ -67,7 +67,7 @@ The dataset should feel **“Kaggle-native”**: documented schema, quality metr
 
 ### 4.1 Upstream
 
-- **Wiktionary text** (definitions, etymology, wikitext-derived content): typically **CC BY-SA 3.0** (verify on [ku.wiktionary.org](https://ku.wiktionary.org) for the dump era used).
+- **Wiktionary text** (definitions, etymology, wikitext-derived content): **CC BY-SA 4.0**, as stated in the footer of every page in the 2026 ZIM dumps.
 - **Wikimedia Commons media** (audio/images linked from entries): **CC BY-SA / CC BY / public domain** varies **per file**; dataset must retain **source URL** and not imply a single license for all binaries.
 
 ### 4.2 Dataset packaging requirements
@@ -282,7 +282,7 @@ uv run python -m src.dataset export --tier full --output-dir ...
 | **Title** | `Kurdish Wiktionary (ku) — Structured Lexicon from Kiwix ZIM` |
 | **Subtitle** | Version, ZIM date, entry count |
 | **Description** | 2–3 paragraphs + bullet list of fields |
-| **License** | CC BY-SA 3.0 (confirm) for text; media varies |
+| **License** | CC BY-SA 4.0 for text; media varies per file |
 | **Tags** | `nlp`, `dictionary`, `kurdish`, `wiktionary`, `lexical-resource` |
 | **Citation** | BibTeX block |
 

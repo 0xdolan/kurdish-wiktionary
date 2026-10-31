@@ -13,7 +13,7 @@ from src.extraction.zim_reader import ZimReader
 MediaFetchMode = Literal["all", "zim_only", "remote_only"]
 
 _WIKIMEDIA_USER_AGENT = (
-    "wiktionary-to-mdx/1.0 (offline dictionary builder; contact: local-dev)"
+    "wiktionary-to-mdx/1.0 (https://github.com/0xdolan/wiktionary_to_mdx) httpx"
 )
 _MAX_REMOTE_RETRIES = 6
 _REMOTE_MIN_INTERVAL_S = 0.35

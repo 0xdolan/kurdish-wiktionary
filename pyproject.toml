@@ -30,6 +30,10 @@ dev = [
     "aiosqlite>=0.20",
     "rich>=13.9",
 ]
+dataset = [
+    "pyarrow>=17",
+    "xlsxwriter>=3.2",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -48,6 +52,8 @@ dev = [
     "testcontainers>=4.9",
     "aiosqlite>=0.20",
     "rich>=13.9",
+    "pyarrow>=17",
+    "xlsxwriter>=3.2",
 ]
 
 [tool.uv]
@@ -108,4 +114,7 @@ omit = [
     "src/extraction/zim_reader.py",
     "src/lexicon/service.py",
     "src/lexicon/media_download.py",
+    # Release CLI and full-corpus stages: run against the real ZIMs (docs/DATASET_LOCAL_GUIDE.md).
+    "src/dataset/__main__.py",
+    "src/dataset/build_db.py",
 ]

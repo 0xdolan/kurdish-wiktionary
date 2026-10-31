@@ -1,0 +1,102 @@
+# Kurdish Wiktionary dataset: brand guide
+
+## The idea
+
+**Name:** Kurdish Wiktionary (in files and code: `wiktionary`).
+
+**Promise:** the Kurdish Wiktionary, ready to build with.
+
+**Positioning:** for developers, researchers and teachers working with Kurdish, this is a structured, documented open dataset of the Kurdish Wiktionary. Raw wiki dumps need a custom parser; this gives you clean tables, audio and a ready-made dictionary, and it says plainly where the data is weak.
+
+## Name and logo: read this first
+
+The name and logo belong to the Wikimedia Foundation, and this project is not part of it. The [trademark policy](https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_Trademark_Policy) sets the rules:
+
+- Write the word in full and capitalized: "Wiktionary", never "Wikt" or "wiktionary" in prose. Lowercase is only for file names and code.
+- Never alter the logo. Don't recolour, crop, stretch or add effects. Adding plain white margin or scaling it is fine.
+- Never suggest endorsement. Don't write "official", and don't say "with permission" unless you have it.
+- Domain names containing "Wiktionary", and events named after it, need permission.
+- Use the notice below wherever the name or logo appears prominently.
+
+> Independent project. Not produced or endorsed by the Wikimedia Foundation or the Wîkîferheng community. Wiktionary and its logo are trademarks of the Wikimedia Foundation.
+
+**Ask before promoting it.** The policy leaves room for describing where content comes from, but a third party using the logo on ads and a product page is less clear-cut. Email trademarks@wikimedia.org before running paid ads or a public launch. This guide isn't legal advice.
+
+## Logo
+
+| File | Use |
+|---|---|
+| `assets/brand/src/wiktionary-logo-ku.svg` | Vector redraw for every design. Outlines only, so no fonts are needed |
+| `assets/brand/src/wiktionary-logo-ku.png` | The official logo, untouched (135 x 155), kept as the reference |
+| `assets/brand/export/logo-{64,192,512,1024,2048}.png` | Square on white: avatars, thumbnails, print |
+
+Source: [Wiktionary-logo-ku on Commons](https://commons.wikimedia.org/wiki/File:Wiktionary-logo-ku.png), CC BY-SA 3.0.
+
+**How the redraw was made.** `scripts/build_logo.py` shapes each line with HarfBuzz and fits its outline to the position measured from the official PNG. It's very close but not identical. The Latin lines use Linux Libertine and Arial, and the Arabic lines use Sahel Bold, because the original's font (probably Tahoma Bold) isn't available here. To tighten the match, set `ARABIC_BOLD` in that script to a Tahoma Bold file and rerun it.
+
+**Always place it on white, in both themes.** Its Arabic lines are white with a soft shadow, so they vanish on any other background. Use a white plate on dark surfaces.
+
+## Fonts
+
+| Text | Font |
+|---|---|
+| Right-to-left (Soranî and other Arabic-script Kurdish) | **Sahel** |
+| Left-to-right (Kurmancî, English, numbers) | **Manrope**, from [Google Fonts](https://fonts.google.com/specimen/Manrope) |
+| Code | Monospace |
+
+Set both in every stack as `Manrope, Sahel, sans-serif`. Sahel has no Latin letters, so each script picks its own font. The logo is artwork and keeps its original lettering.
+
+## Colour
+
+One palette for the dictionary, the site and every design asset. Tokens live in `assets/mdict/css/dictionary.css`, `assets/brand/src/landing.html` and `scripts/build_brand.py`.
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| Background | `#F6F8F9` | `#0A1215` | Page |
+| Surface | `#FFFFFF` | `#121C20` | Cards |
+| Raised | `#EEF2F4` | `#1A272C` | Table headers, quotes |
+| Ink | `#101C22` | `#E9F0F2` | Body text |
+| Muted | `#566570` | `#9DAFB7` | Secondary text |
+| Line | `#DDE4E8` | `#27363C` | Borders |
+| Accent | `#0B7285` | `#5CCBDE` | Links, buttons, one highlight per layout |
+| Chart bars | `#0E8AA3` | `#25A9C2` | Bars on the landing page and in the notebook |
+| Accent soft | `#E2F3F6` | `#123239` | Tinted headers, hover |
+| Highlight | `#B45309` | `#F7B955` | Citation dates and rules |
+
+Every asset has `-light` and `-dark` versions. Use dark on dark feeds and light on light ones. For a single cover, such as on Kaggle, use dark.
+
+## Voice
+
+Plain, accurate and generous to the people who wrote the words.
+
+| Do | Don't |
+|---|---|
+| "1.1M+ entries" (a real, rounded-down number) | "The largest Kurdish dictionary" (unverified) |
+| "226K entries are marked bot-made, and they're flagged" | Hiding the weak parts |
+| "From the contributors of Wîkîferheng" | Implying we wrote the content |
+| "Independent project" | "Official Wiktionary dataset" |
+| Say Kurmancî and Soranî by name | Treat "Kurdish" as one uniform language |
+| "94K recordings in many languages" | "94K Kurdish recordings" (most are English, German, French) |
+| "Not flagged as bot-made" | "Hand-edited" (we can't verify that) |
+
+Stay neutral on politics, and on questions of dialect and script. The project is about the language and open knowledge.
+
+## Assets
+
+Every image is generated by `scripts/build_brand.py` from the release's `quality/report.json` and real output files. Rerun it after each release so the numbers stay true. Don't edit the exported images by hand.
+
+```bash
+uv run python scripts/build_brand.py                 # All
+uv run python scripts/build_brand.py creatives site  # Only ads and landing page
+```
+
+| Asset | Size | For |
+|---|---|---|
+| `export/kaggle-cover-{light,dark}.png` | 1200 x 800 | Kaggle cover; Kaggle crops it, so check the preview |
+| `export/social-card-{light,dark}.png` | 1200 x 630 | Link previews, X, LinkedIn, Facebook |
+| `export/ad-square-{light,dark}.png` | 1080 x 1080 | Instagram, LinkedIn, Facebook feed |
+| `export/ad-portrait-{light,dark}.png` | 1080 x 1350 | Instagram feed |
+| `export/ad-story-{light,dark}.png` | 1080 x 1920 | Stories, Reels, Shorts |
+| `export/ad-leaderboard-{light,dark}.png` | 728 x 90 | Web banner |
+| `screenshots/*.png` | Various | Docs, posts, the landing page |
+| `site/index.html` | Responsive | Landing page with both themes. `.github/workflows/pages.yml` deploys it |

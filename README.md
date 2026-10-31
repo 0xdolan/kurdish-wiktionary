@@ -2,6 +2,29 @@
 
 Kurdish Wiktionary (Wîkîferheng) pipeline: Kiwix **ZIM** ingest, PostgreSQL storage, FastAPI query API, and **MDX/MDD** dictionary export via [mdict-utils](https://pypi.org/project/mdict-utils/).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/export/social-card-dark.png">
+  <img alt="The Kurdish Wiktionary as open data" src="assets/brand/export/social-card-light.png">
+</picture>
+
+## The Kurdish Wiktionary open dataset
+
+This repo builds an open-data release of the Kurdish Wiktionary, directly from the ZIM files with no database server needed:
+
+```bash
+./scripts/build-release.sh   # SQLite, SQL, Excel, CSV, Parquet, JSONL, media, MDX/MDD, Kaggle folder
+```
+
+| Guide | For |
+|---|---|
+| [docs/DATASET_LOCAL_GUIDE.md](docs/DATASET_LOCAL_GUIDE.md) | Building and using the data locally: media, SQL, Excel, dictionary files |
+| [docs/DATASET_KAGGLE_GUIDE.md](docs/DATASET_KAGGLE_GUIDE.md) | Publishing to Kaggle, and using the data there |
+| [docs/DATASET_SCHEMA.md](docs/DATASET_SCHEMA.md) | Every table and column |
+| [docs/marketing/BRAND_GUIDE.md](docs/marketing/BRAND_GUIDE.md) | Name, logo, colours, voice, assets |
+| [docs/marketing/LAUNCH_KIT.md](docs/marketing/LAUNCH_KIT.md) | Announcements, ads, FAQ, launch checklist |
+
+The rest of this README covers the older PostgreSQL and API pipeline, which stays available.
+
 ## Documentation
 
 | Document | Contents |
