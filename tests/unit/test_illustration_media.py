@@ -1,3 +1,4 @@
+# ruff: noqa: E501 - HTML fixtures.
 from src.mdict.illustration_media import (
     illustration_media_fingerprints,
     media_path_fingerprint,

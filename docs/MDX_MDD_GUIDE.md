@@ -157,7 +157,7 @@ uv add mdict-utils
 Use this for debugging or when you prefer CLI over HTTP jobs.
 
 ```bash
-cd /home/dolan/Documents/wiktionary_to_mdx
+cd kurdish-wiktionary
 uv sync
 
 # 1) Ingest ZIM into SQL (when CLI exists)

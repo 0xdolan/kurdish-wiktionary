@@ -8,7 +8,7 @@ from rich.console import Console
 from src.catalog.cli_progress import CatalogJobProgress
 from src.config import get_settings
 from src.lexicon import service as lexicon_service
-from src.lexicon.media_download import close_media_http_client
+from src.lexicon.media_download import MediaFetchMode, close_media_http_client
 from src.lexicon.media_run_log import MediaDownloadRunLogger
 from src.repository.db.base import dispose_engine, get_session_factory, init_engine
 
@@ -189,7 +189,7 @@ async def async_main(args: argparse.Namespace) -> int:
             if args.all and not args.confirm:
                 print("media-download-all --all requires --confirm", file=sys.stderr)
                 return 2
-            fetch_mode = "all"
+            fetch_mode: MediaFetchMode = "all"
             if args.zim_only:
                 fetch_mode = "zim_only"
             elif args.remote_only:

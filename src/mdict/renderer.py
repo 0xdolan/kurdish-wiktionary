@@ -1,4 +1,5 @@
 from html import escape
+from typing import Any
 
 from src.core.models import WiktionaryEntry
 from src.mdict.constants import (
@@ -6,16 +7,16 @@ from src.mdict.constants import (
     WIKTIONARY_EXTERNAL_REL,
     WIKTIONARY_EXTERNAL_TARGET,
 )
-from src.mdict.syllabification import syllabification_from_bilevkirin_html
-from src.mdict.wiktionary_urls import DEFAULT_WIKTIONARY_LANG, live_wiktionary_article_url
 from src.mdict.html_sanitize import rewrite_section_media_hrefs, sanitize_section_html
-from src.mdict.section_media import build_media_href_lookup
 from src.mdict.illustration_media import (
     illustration_media_fingerprints,
     media_path_fingerprint,
 )
 from src.mdict.section_content import html_has_visible_content, non_empty_strings
-from src.mdict.section_labels import SECTION_HTML_ORDER, SECTION_TITLES, wrap_section
+from src.mdict.section_labels import SECTION_HTML_ORDER, wrap_section
+from src.mdict.section_media import build_media_href_lookup
+from src.mdict.syllabification import syllabification_from_bilevkirin_html
+from src.mdict.wiktionary_urls import DEFAULT_WIKTIONARY_LANG, live_wiktionary_article_url
 
 _SPEAKER_ICON = (
     f'<img class="wikt-speaker-img" src="{SPEAKER_ICON_HREF}" width="20" height="20" '
@@ -96,14 +97,14 @@ def _is_pronunciation_token(token: str) -> bool:
     return "upload.wikimedia.org" not in lower and not lower.startswith("//")
 
 
-def _audio_items(entry: WiktionaryEntry) -> list[dict]:
+def _audio_items(entry: WiktionaryEntry) -> list[dict[str, Any]]:
     raw = entry.metadata.get("mdict_media")
     if not isinstance(raw, list):
         return []
     return [m for m in raw if isinstance(m, dict) and m.get("kind") == "audio"]
 
 
-def _image_items(entry: WiktionaryEntry) -> list[dict]:
+def _image_items(entry: WiktionaryEntry) -> list[dict[str, Any]]:
     raw = entry.metadata.get("mdict_media")
     if not isinstance(raw, list):
         return []
@@ -117,7 +118,7 @@ def _image_items(entry: WiktionaryEntry) -> list[dict]:
         if media_path_fingerprint(str(m.get("href", ""))) in allowed
     ]
 
-    def _sort_key(item: dict) -> tuple[int, str]:
+    def _sort_key(item: dict[str, Any]) -> tuple[int, str]:
         href = str(item.get("href", "")).casefold()
         photo = 0 if ".jpg" in href or ".jpeg" in href else 1
         return photo, href
@@ -247,7 +248,7 @@ def _section_html_map(entry: WiktionaryEntry) -> dict[str, str]:
     return {str(k): str(v) for k, v in raw.items() if v}
 
 
-def _media_items(entry: WiktionaryEntry) -> list[dict]:
+def _media_items(entry: WiktionaryEntry) -> list[dict[str, Any]]:
     raw = entry.metadata.get("mdict_media")
     if not isinstance(raw, list):
         return []
@@ -322,7 +323,8 @@ def _render_live_wiktionary_section(entry: WiktionaryEntry) -> str:
     body = (
         '<p class="wikt-live-wiki-intro">'
         '<span class="wikt-toggle-ku">Di geroka xwe de vê peyvê li Wîkîferhengê veke.</span>'
-        '<span class="wikt-toggle-en">Open this entry on the live Wiktionary site in your browser.</span>'
+        '<span class="wikt-toggle-en">'
+        "Open this entry on the live Wiktionary site in your browser.</span>"
         "</p>"
         f'<p class="wikt-live-wiki-action">'
         f'<a class="wikt-live-wiki-link" href="{escape(url)}" '

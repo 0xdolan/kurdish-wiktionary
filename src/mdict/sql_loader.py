@@ -11,8 +11,8 @@ from sqlalchemy.orm import selectinload
 
 from src.core.models import WiktionaryEntry
 from src.extraction.normalize import normalize_entry_key
-from src.repository.db.mappers import entry_model_to_schema
 from src.mdict.media_captions import lookup_image_caption
+from src.repository.db.mappers import entry_model_to_schema
 from src.repository.db.models import EntryHtmlModel, EntryMediaModel, EntryModel
 
 

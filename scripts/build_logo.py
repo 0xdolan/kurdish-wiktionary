@@ -11,6 +11,7 @@ Usage: uv run --with uharfbuzz --with fonttools --with pillow --with numpy \
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -30,7 +31,7 @@ LIBERTINE_BOLD = "/usr/share/fonts/opentype/linux-libertine/LinLibertine_RB.otf"
 LIBERTINE = "/usr/share/fonts/opentype/linux-libertine/LinLibertine_R.otf"
 ARIAL_BOLD = "/usr/share/fonts/truetype/msttcorefonts/arialbd.ttf"
 # The original is likely Tahoma Bold, which is not freely available; Sahel Bold fits it best here.
-ARABIC_BOLD = "/home/dolan/.fonts/sahel-font-v3.4.0/Sahel-Bold.ttf"
+ARABIC_BOLD = os.environ.get("ARABIC_BOLD", str(Path.home() / ".fonts/sahel-font-v3.4.0/Sahel-Bold.ttf"))
 
 
 @dataclass(frozen=True)

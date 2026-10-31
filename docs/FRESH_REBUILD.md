@@ -27,7 +27,7 @@ sudo chown -R 10001:10001 build/catalog   # or: chmod -R a+rwX build/catalog
 ## Phase A — Backup current SQL (optional but recommended)
 
 ```bash
-cd /home/dolan/Documents/wiktionary_to_mdx
+cd kurdish-wiktionary
 chmod +x scripts/*.sh
 ./scripts/backup-postgres.sh
 ```
@@ -176,7 +176,7 @@ See [MDX_MDD_GUIDE.md](./MDX_MDD_GUIDE.md).
 ## One-page cheat sheet (copy/paste)
 
 ```bash
-cd /home/dolan/Documents/wiktionary_to_mdx
+cd kurdish-wiktionary
 chmod +x scripts/*.sh
 mkdir -p build/catalog/state build/catalog/reports backups/postgres
 sudo chown -R 10001:10001 build/catalog 2>/dev/null || chmod -R a+rwX build/catalog

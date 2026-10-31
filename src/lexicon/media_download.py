@@ -56,7 +56,7 @@ def _retry_delay_seconds(response: httpx.Response | None, attempt: int) -> float
                 return max(float(raw), _REMOTE_MIN_INTERVAL_S)
             except ValueError:
                 pass
-    return min(60.0, _REMOTE_MIN_INTERVAL_S * (2**attempt))
+    return min(60.0, _REMOTE_MIN_INTERVAL_S * 2.0**attempt)
 
 
 async def _throttle_remote() -> None:

@@ -19,7 +19,4 @@ def html_has_visible_content(html: str) -> bool:
     text = body.text(separator=" ", strip=True)
     if text:
         return True
-    for tag in ("img", "audio", "video", "svg", "table"):
-        if tree.css(tag):
-            return True
-    return False
+    return any(tree.css(tag) for tag in ("img", "audio", "video", "svg", "table"))

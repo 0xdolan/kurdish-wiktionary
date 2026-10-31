@@ -153,7 +153,10 @@ def _prepare_translations(html: str) -> str:
     )
     out = _TPOS_SPAN.sub("", out)
     if 'class="translations wikt-translations"' not in out:
-        out = out.replace('<div class="translations">', '<div class="translations wikt-translations">')
+        out = out.replace(
+            '<div class="translations">',
+            '<div class="translations wikt-translations">',
+        )
     out = re.sub(
         r'class="([^"]*\bwerger-content\b[^"]*)"',
         lambda m: _rewrite_class_attr(m, extra="wikt-translations-frame"),
@@ -227,9 +230,9 @@ def _prepare_derived_terms(html: str) -> str:
 
 _DERIVED_LI = re.compile(r"<li>(.*?)</li>", re.I | re.DOTALL)
 _DERIVED_QUALIFIER = re.compile(
-    r'<span[^>]*\bqualifier-brac\b[^>]*>[^<]*</span>\s*'
+    r'(?:<span[^>]*\bqualifier-brac\b[^>]*>[^<]*</span>\s*)?'
     r'<span[^>]*\bqualifier-content\b[^>]*>([^<]+)</span>\s*'
-    r'<span[^>]*\bqualifier-brac\b[^>]*>[^<]*</span>\s*',
+    r'(?:<span[^>]*\bqualifier-brac\b[^>]*>[^<]*</span>\s*)?',
     re.I,
 )
 
@@ -311,15 +314,19 @@ def _inflection_row_groups(table_html: str) -> list[list[str]] | None:
         is_outer = tr.css_first("th.outer") is not None
         if is_outer and current:
             groups.append(current)
-            current = [_clean_inflection_row_html(tr.html)]
+            current = [_clean_inflection_row_html(tr.html or "")]
         else:
-            current.append(_clean_inflection_row_html(tr.html))
+            current.append(_clean_inflection_row_html(tr.html or ""))
     if current:
         groups.append(current)
     return groups if len(groups) > 1 else None
 
 
-def _split_inflection_table_html(table_html: str, *, wrapper_class: str | None = None) -> str | None:
+def _split_inflection_table_html(
+    table_html: str,
+    *,
+    wrapper_class: str | None = None,
+) -> str | None:
     groups = _inflection_row_groups(table_html)
     if not groups:
         return None
@@ -329,7 +336,7 @@ def _split_inflection_table_html(table_html: str, *, wrapper_class: str | None =
     assert table is not None
     caption = table.css_first("caption")
     caption_html = caption.html if caption else ""
-    raw_class = table.attributes.get("class", "inflection-table")
+    raw_class = table.attributes.get("class") or "inflection-table"
     table_class = _normalize_class_list(raw_class, extra="wikt-inflection-table")
 
     first_wrap_class = "wikt-inflection-wrap wikt-inflection-wrap--first"
@@ -338,7 +345,9 @@ def _split_inflection_table_html(table_html: str, *, wrapper_class: str | None =
 
     parts: list[str] = []
     for index, rows in enumerate(groups):
-        wrap_class = first_wrap_class if index == 0 else "wikt-inflection-wrap wikt-inflection-wrap--part"
+        wrap_class = (
+            first_wrap_class if index == 0 else "wikt-inflection-wrap wikt-inflection-wrap--part"
+        )
         cap = caption_html if index == 0 else ""
         body = "".join(rows)
         parts.append(
@@ -397,7 +406,8 @@ def _prepare_inflection_tables(html: str) -> str:
     out = re.sub(
         r'(<table\b[^>]*\s)class="([^"]*\binflection-table\b[^"]*)"',
         lambda m: (
-            f'{m.group(1)}class="{_normalize_class_list(m.group(2), extra="wikt-inflection-table")}"'
+            f"{m.group(1)}class="
+            f'"{_normalize_class_list(m.group(2), extra="wikt-inflection-table")}"'
         ),
         out,
         flags=re.I,

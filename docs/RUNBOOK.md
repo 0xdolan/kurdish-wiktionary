@@ -83,7 +83,7 @@ An earlier repo rename left a Docker Compose project named **`wikitionary-to-mdx
 Always run Compose from the real tree:
 
 ```bash
-cd /home/dolan/Documents/wiktionary_to_mdx
+cd kurdish-wiktionary
 docker compose up -d postgres api
 ```
 
@@ -92,7 +92,7 @@ Remove the old stack and folder (one-time):
 ```bash
 docker rm -f wikitionary-to-mdx-api-1 wikitionary-to-mdx-postgres-1 2>/dev/null || true
 docker volume rm wikitionary-to-mdx_postgres_data   # optional: orphan DB volume from typo project
-sudo rm -rf /home/dolan/Documents/wikitionary_to_mdx
+sudo rm -rf ~/old-checkout-of-this-repo
 ```
 
 Confirm only the correct project remains: `docker ps -a --filter name=wiktionary-to-mdx` should list **`wiktionary-to-mdx-*`**, not `wikitionary-to-mdx-*`.

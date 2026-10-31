@@ -1,3 +1,4 @@
+# ruff: noqa: E501 - HTML fixtures.
 from src.mdict.html_sanitize import rewrite_section_media_hrefs, sanitize_section_html
 from src.mdict.section_media import build_media_href_lookup
 

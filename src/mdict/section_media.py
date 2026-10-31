@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from src.mdict.illustration_media import media_path_fingerprint
 
 
-def build_media_href_lookup(media_items: list[dict]) -> dict[str, str]:
+def build_media_href_lookup(media_items: list[dict[str, Any]]) -> dict[str, str]:
     lookup: dict[str, str] = {}
     for item in media_items:
-        if not isinstance(item, dict):
-            continue
         if item.get("kind") not in {"audio", "image"}:
             continue
         href = str(item.get("href", "")).strip()
