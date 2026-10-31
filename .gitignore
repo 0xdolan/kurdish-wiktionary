@@ -23,3 +23,15 @@ zim/**/*.zim
 backups/postgres/*.dump
 backups/postgres/*.sql
 backups/postgres/*.sql.gz
+
+# Generated data: too large for Git, rebuilt with docs/REPRODUCE.md
+*.zim
+*.mdx
+*.mdd
+*.sqlite
+*.sqlite-*
+*.parquet
+*.xlsx
+*.jsonl.gz
+*.sql.gz
+dict.txt

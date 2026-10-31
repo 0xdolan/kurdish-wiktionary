@@ -14,7 +14,7 @@ from pathlib import Path
 import httpx
 import pyarrow.parquet as pq
 import pytest
-from src.dataset import bundle, entry_html, exporters, mdict_build, quality
+from src.dataset import bundle, entry_html, exporters, mdict_build, quality, verify
 from src.dataset import media as media_stage
 from src.dataset.build_db import _write_media, _write_rows, create_database
 from src.dataset.page_parser import media_id_for, parse_page
@@ -493,6 +493,28 @@ def test_finalize_refuses_while_another_process_writes(database: Path) -> None:
     with pytest.raises((SystemExit, sqlite3.OperationalError)):
         bundle.finalize_database(other)
     writer.rollback()
+
+
+def test_verify_matches_then_catches_changes(database: Path, tmp_path: Path) -> None:
+    archive = tmp_path / "a.zim"
+    archive.write_bytes(b"zim")
+    expected = tmp_path / "expected.json"
+    conn = _conn(database)
+    verify.write_expected(conn, [archive], expected)
+    assert verify.compare(conn, [archive], expected) == []
+
+    # Download status lives in `media` and may change without being a difference.
+    conn.execute("UPDATE media SET status = 'present'")
+    assert verify.compare(conn, [archive], expected) == []
+
+    conn.execute("UPDATE senses SET definition = 'changed'")
+    assert verify.compare(conn, [archive], expected) == ["senses: same row count, but the contents differ"]
+    conn.execute("DELETE FROM senses")
+    assert verify.compare(conn, [archive], expected) == ["senses: 0 rows, expected 1"]
+
+    archive.write_bytes(b"other")
+    assert "ZIM differs from the published one: a.zim" in verify.compare(conn, [archive], expected)
+    assert verify.compare(conn, [], expected)[0] == "ZIM not found: a.zim"
 
 
 def test_data_dictionary_lists_every_column() -> None:

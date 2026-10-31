@@ -1,0 +1,79 @@
+{
+  "zim": {
+    "wiktionary_ku_all_maxi_2026-08.zim": "8534326d9d89e59274d946458460cef4106dee8bd80d532dd1e4bc0e9710f03a",
+    "wiktionary_ku_all_nopic_2026-06.zim": "26f820ae99bc560d1b873bcf7bab295ca8d3865798eb41f0819460e8a8b5eb13"
+  },
+  "tables": {
+    "pages": {
+      "rows": 1038509,
+      "sha256": "050f23cb8502114f410c7ae1fed0fde6b69b648ff1875bb4a13e57abd8b3b430"
+    },
+    "redirects": {
+      "rows": 2918,
+      "sha256": "a4e0f86212d228dc783d2d596082ec46b0ff65ae89071b2e73a1d61f5442ec6b"
+    },
+    "entries": {
+      "rows": 1109037,
+      "sha256": "42dc6a92372a07cc1b70535b5c45b8bd513da97fe1ae1df4ccca7274d5ae20fa"
+    },
+    "sections": {
+      "rows": 3024919,
+      "sha256": "4e4ac99c8ce5ccb365fdacbb5e7cea7824e3dd12e6362476377a761811c66c10"
+    },
+    "section_html": {
+      "rows": 1919559,
+      "sha256": "324800f323cf0e066d2b9fd8bc87d982eb3067ef6ceae27df880e9f073eeba71"
+    },
+    "headwords": {
+      "rows": 1079876,
+      "sha256": "d7cb37c0fd95bd9b2d4f4133ee131b2ad65d5d9ff571b11102dc1577f22a5c8c"
+    },
+    "senses": {
+      "rows": 1220879,
+      "sha256": "d83f2899f41a7101b38d2352a81e3ddd1ed11582fcdb8f4dce12c2f538158531"
+    },
+    "examples": {
+      "rows": 21010,
+      "sha256": "e41cbdf3e868ccf1eab88d5016bc0d5c906c20d42076ec7e69c2643796c6d482"
+    },
+    "quotations": {
+      "rows": 14454,
+      "sha256": "83bc8bad83f9bd300fe03d8b90cadce12aa4237cc565b3304f8fcdafca0aa41c"
+    },
+    "pronunciations": {
+      "rows": 309237,
+      "sha256": "e702e4b7c6cee8cbc59eaf1df0c1db8957b97feead1653021395649e379c5f35"
+    },
+    "etymologies": {
+      "rows": 102091,
+      "sha256": "17ba3922e6f6c1d42179ec9d07080cf3c92005a2b1c7133a5312d1aad12db132"
+    },
+    "translations": {
+      "rows": 799382,
+      "sha256": "ae4512ddc4f683896c70c1f031334c281880f7c8ae7eb0b36c64d42f4578399a"
+    },
+    "relations": {
+      "rows": 298147,
+      "sha256": "dd618746b0d267ef119fee61025362c810db6aa35e7fdb90a91aef1e51f498cf"
+    },
+    "inflection_tables": {
+      "rows": 277209,
+      "sha256": "a34b6552456b13273c4c9a26553bae7c652281d25d40b442ec2a71f0578cc481"
+    },
+    "inflection_forms": {
+      "rows": 1692571,
+      "sha256": "eab8e6ea48888ecf16f2e2ab8b20c35967105ad8e9690562ea40e379113bda06"
+    },
+    "reference_notes": {
+      "rows": 241525,
+      "sha256": "eb64717faab2d5f06929a916d3fc6907289d08e36dfa846987d561faa1c87a34"
+    },
+    "media": {
+      "rows": 98622
+    },
+    "media_usages": {
+      "rows": 374613,
+      "sha256": "51bc5cb6b3561cdc1b4c825f15ce1dfe4b7b6474c3ce526e0a485b601b188fd1"
+    }
+  }
+}

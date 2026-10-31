@@ -19,6 +19,10 @@ run export
 run mdict
 run quality
 # Before the bundle: the Kaggle cover shows the final numbers.
-uv run python scripts/build_brand.py
+if command -v google-chrome >/dev/null && command -v libreoffice >/dev/null; then
+  uv run python scripts/build_brand.py
+else
+  echo "Skipping images: they need Chrome and LibreOffice. The ones in the repository are used."
+fi
 run bundle
 echo "Release ready in build/release/kaggle. Check build/release/quality/QUALITY.md before uploading."

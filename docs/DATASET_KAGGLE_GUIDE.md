@@ -1,6 +1,6 @@
 # Kurdish Wiktionary dataset: Kaggle guide
 
-For people publishing the dataset and for people using it on Kaggle.
+For people publishing the dataset and for people using it on Kaggle. Publishing is optional: anyone can rebuild the data with [REPRODUCE.md](REPRODUCE.md).
 
 ## Publish
 
@@ -15,7 +15,6 @@ Before uploading, read `build/release/quality/QUALITY.md`. Then confirm:
 
 - [ ] Audio missing is at a level you accept, and the README's numbers match
 - [ ] `build/release/kaggle/dataset-metadata.json` has the id `zeroxdolan/wiktionary-wordlists`
-- [ ] You have checked the name and logo against the [Wikimedia trademark policy](https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_Trademark_Policy). Ask trademarks@wikimedia.org if unsure
 - [ ] The slug and title are the ones you want. Kaggle URLs are hard to change later
 - [ ] Unknown-licence media is acceptable to you, or removed (see "Media licences" below)
 

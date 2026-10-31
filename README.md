@@ -9,16 +9,20 @@ Kurdish Wiktionary (Wîkîferheng) pipeline: Kiwix **ZIM** ingest, PostgreSQL st
 
 ## The Kurdish Wiktionary open dataset
 
-This repo builds an open-data release of the Kurdish Wiktionary, directly from the ZIM files with no database server needed:
+This repo builds an open-data release of the Kurdish Wiktionary from the Kiwix ZIM files. It holds code and guides only: ZIMs and generated data stay out of Git, and you rebuild them yourself. With the same ZIMs you get the same tables, and `verify` proves it.
 
 ```bash
-./scripts/build-release.sh   # SQLite, SQL, Excel, CSV, Parquet, JSONL, media, MDX/MDD, Kaggle folder
+uv sync
+./scripts/fetch-zims.sh                      # The exact ZIMs, hash-checked
+./scripts/build-release.sh --skip-download   # SQLite, SQL, Excel, CSV, Parquet, JSONL, MDX/MDD
+uv run python -m src.dataset verify          # Compare with the published release
 ```
 
 | Guide | For |
 |---|---|
-| [docs/DATASET_LOCAL_GUIDE.md](docs/DATASET_LOCAL_GUIDE.md) | Building and using the data locally: media, SQL, Excel, dictionary files |
-| [docs/DATASET_KAGGLE_GUIDE.md](docs/DATASET_KAGGLE_GUIDE.md) | Publishing to Kaggle, and using the data there |
+| [docs/REPRODUCE.md](docs/REPRODUCE.md) | **Start here:** rebuild everything from the ZIMs and get the same results |
+| [docs/DATASET_LOCAL_GUIDE.md](docs/DATASET_LOCAL_GUIDE.md) | Using the data locally: media, SQL, Excel, dictionary files |
+| [docs/DATASET_KAGGLE_GUIDE.md](docs/DATASET_KAGGLE_GUIDE.md) | Using the data on Kaggle, and publishing it there (optional) |
 | [docs/DATASET_SCHEMA.md](docs/DATASET_SCHEMA.md) | Every table and column |
 | [docs/marketing/BRAND_GUIDE.md](docs/marketing/BRAND_GUIDE.md) | Name, logo, colours, voice, assets |
 | [docs/marketing/LAUNCH_KIT.md](docs/marketing/LAUNCH_KIT.md) | Announcements, ads, FAQ, launch checklist |

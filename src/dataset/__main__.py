@@ -5,12 +5,13 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import sqlite3
 import time
 from pathlib import Path
 
 from rich.console import Console
 
-from src.dataset import bundle, exporters, mdict_build, quality
+from src.dataset import bundle, exporters, mdict_build, quality, verify
 from src.dataset import media as media_stage
 from src.dataset.build_db import build_database, connect
 
@@ -157,6 +158,20 @@ def _stage_quality(args: argparse.Namespace) -> None:
     console.print_json(json.dumps(summary, ensure_ascii=False))
 
 
+def _stage_verify(args: argparse.Namespace) -> None:
+    conn = sqlite3.connect(f"file:{_database(args)}?mode=ro", uri=True)
+    if args.write_expected:
+        verify.write_expected(conn, _archives(args))
+        console.print(f"Wrote {verify.EXPECTED}")
+        return
+    problems = verify.compare(conn, _archives(args))
+    if problems:
+        for problem in problems:
+            console.print(f"DIFFERS: {problem}", markup=False)
+        raise SystemExit(1)
+    console.print("MATCH: ZIM files, row counts and table contents equal the published release.")
+
+
 def _stage_bundle(args: argparse.Namespace) -> None:
     root = Path(args.root)
     conn = connect(_database(args))
@@ -207,6 +222,13 @@ def build_parser() -> argparse.ArgumentParser:
         func=_stage_quality
     )
     sub.add_parser("bundle", help="Assemble the Kaggle folder").set_defaults(func=_stage_bundle)
+    check = sub.add_parser("verify", help="Compare this build with the published release")
+    check.add_argument(
+        "--write-expected",
+        action="store_true",
+        help="Record this build as the baseline (after changing the parser on purpose)",
+    )
+    check.set_defaults(func=_stage_verify)
     return parser
 
 

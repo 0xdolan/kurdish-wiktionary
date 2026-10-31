@@ -27,9 +27,8 @@ Use this notice wherever the name or logo is prominent: *Independent project. No
 3. [ ] Landing page is live (GitHub Pages from `site/`), and its Kaggle link works
 4. [ ] GitHub README links to Kaggle
 5. [ ] Native speaker has reviewed the Kurdish copy
-6. [ ] Name and logo use is checked with the Wikimedia Foundation (trademarks@wikimedia.org). See `BRAND_GUIDE.md`
-7. [ ] Wîkîferheng community told first, as a courtesy (see below)
-8. [ ] Then post, in the order below
+6. [ ] Wîkîferheng community told first, as a courtesy (see below)
+7. [ ] Then post, in the order below
 
 ## Announcements
 
@@ -111,7 +110,7 @@ Only run paid ads if you have a budget and a reason. An open dataset usually spr
 | `ad-story-{light,dark}.png` | The Kurdish dictionary, offline | For GoldenDict and MDict. | Dictionary app users, students |
 | `ad-leaderboard-{light,dark}.png` | The Kurdish Wiktionary as open data | | Language tech and open-data sites |
 
-Don't claim "largest", "complete" or "official". The ads use the Wiktionary name and logo, so get the Wikimedia Foundation's answer before paying to run them.
+Don't claim "largest", "complete" or "official".
 
 ## FAQ
 

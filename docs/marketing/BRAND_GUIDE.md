@@ -8,19 +8,16 @@
 
 **Positioning:** for developers, researchers and teachers working with Kurdish, this is a structured, documented open dataset of the Kurdish Wiktionary. Raw wiki dumps need a custom parser; this gives you clean tables, audio and a ready-made dictionary, and it says plainly where the data is weak.
 
-## Name and logo: read this first
+## Name and logo
 
 The name and logo belong to the Wikimedia Foundation, and this project is not part of it. The [trademark policy](https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_Trademark_Policy) sets the rules:
 
 - Write the word in full and capitalized: "Wiktionary", never "Wikt" or "wiktionary" in prose. Lowercase is only for file names and code.
 - Never alter the logo. Don't recolour, crop, stretch or add effects. Adding plain white margin or scaling it is fine.
 - Never suggest endorsement. Don't write "official", and don't say "with permission" unless you have it.
-- Domain names containing "Wiktionary", and events named after it, need permission.
 - Use the notice below wherever the name or logo appears prominently.
 
 > Independent project. Not produced or endorsed by the Wikimedia Foundation or the Wîkîferheng community. Wiktionary and its logo are trademarks of the Wikimedia Foundation.
-
-**Ask before promoting it.** The policy leaves room for describing where content comes from, but a third party using the logo on ads and a product page is less clear-cut. Email trademarks@wikimedia.org before running paid ads or a public launch. This guide isn't legal advice.
 
 ## Logo
 

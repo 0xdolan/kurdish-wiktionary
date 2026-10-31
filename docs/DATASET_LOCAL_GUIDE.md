@@ -1,6 +1,6 @@
 # Kurdish Wiktionary dataset: local guide
 
-Build the dataset from the ZIM files on your own machine, then use it. For publishing, see [DATASET_KAGGLE_GUIDE.md](DATASET_KAGGLE_GUIDE.md). Every column is documented in [DATASET_SCHEMA.md](DATASET_SCHEMA.md).
+Use the dataset on your own machine. To build it from scratch, follow [REPRODUCE.md](REPRODUCE.md) first. For publishing, see [DATASET_KAGGLE_GUIDE.md](DATASET_KAGGLE_GUIDE.md). Every column is documented in [DATASET_SCHEMA.md](DATASET_SCHEMA.md).
 
 ## What you need
 
