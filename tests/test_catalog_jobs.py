@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -6,6 +7,10 @@ from httpx import AsyncClient
 from src.catalog.sync import WordlistSyncResult
 
 
+@pytest.mark.skipif(
+    not any((Path(__file__).parents[1] / "zim").rglob("*.zim")),
+    reason="ZIM files are not in Git; run scripts/fetch-zims.sh",
+)
 @pytest.mark.asyncio
 async def test_catalog_sync_job_returns_202(
     client: AsyncClient,

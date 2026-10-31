@@ -1,7 +1,13 @@
+from pathlib import Path
+
 import pytest
 from httpx import AsyncClient
 
 
+@pytest.mark.skipif(
+    not any((Path(__file__).parents[1] / "zim").rglob("*.zim")),
+    reason="ZIM files are not in Git; run scripts/fetch-zims.sh",
+)
 @pytest.mark.asyncio
 async def test_get_word_from_zim(client: AsyncClient) -> None:
     response = await client.get(
