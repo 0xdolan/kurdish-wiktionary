@@ -435,6 +435,17 @@ def test_only_first_language_opens_on_many_language_pages() -> None:
     assert article.count('<details class="wk-lang"') == 5
 
 
+def test_packing_works_on_a_fresh_machine_without_a_logs_folder(tmp_path: Path) -> None:
+    source = tmp_path / "dict.txt"
+    source.write_text("heval\n<p>x</p>\n</>\n", encoding="utf-8")
+    title, description = mdict_build.write_templates(
+        tmp_path / "templates", version="1", zim_date="2026-08-25", entries=1
+    )
+    output = tmp_path / "out.mdx"
+    mdict_build._pack(title, description, source, output, tmp_path / "new" / "logs" / "pack.log")
+    assert output.is_file()
+
+
 def test_record_format() -> None:
     assert mdict_build.format_record("a  b", "<x/>").endswith("\n</>\n")
     assert mdict_build.format_record("a  b", "<x/>").startswith("a b\n<link ")

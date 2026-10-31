@@ -198,6 +198,7 @@ def _pack(title: Path, description: Path, source: Path, output: Path, log: Path)
         str(source),
         str(output),
     ]
+    log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("a", encoding="utf-8") as handle:
         subprocess.run(command, check=True, stdout=handle, stderr=subprocess.STDOUT)
 
