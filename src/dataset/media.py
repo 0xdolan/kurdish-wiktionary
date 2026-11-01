@@ -346,6 +346,17 @@ def original_url_for(commons_file: str) -> str:
     )
 
 
+def transcoded_url_for(commons_file: str) -> str:
+    """Upload URL of the MP3 that Commons converts a recording to."""
+    name = commons_file.replace(" ", "_")
+    digest = hashlib.md5(name.encode("utf-8")).hexdigest()  # noqa: S324 - MediaWiki's path scheme
+    quoted = quote(name, safe="")
+    return (
+        "https://upload.wikimedia.org/wikipedia/commons/transcoded/"
+        f"{digest[0]}/{digest[:2]}/{quoted}/{quoted}.mp3"
+    )
+
+
 class _Pacer:
     """Shared pause after a 429, plus a bytes-per-second ceiling across workers."""
 
@@ -419,6 +430,18 @@ async def _fetch(
     return None, error
 
 
+async def _renamed_commons_file(client: httpx.AsyncClient, commons_file: str) -> str | None:
+    """Current name of a file moved on Commons, or None if it has not moved."""
+    try:
+        payload = await _api_get(
+            client, COMMONS_API, {"redirects": "1", "titles": f"File:{commons_file}"}
+        )
+    except httpx.HTTPError:
+        return None
+    redirects = payload.get("query", {}).get("redirects") or []
+    return str(redirects[-1]["to"]).split(":", 1)[-1] if redirects else None
+
+
 async def _download_one(
     client: httpx.AsyncClient,
     url: str,
@@ -433,6 +456,14 @@ async def _download_one(
             if payload is not None:
                 return DownloadResult(payload=payload, used_fallback=True)
             error = f"{error}; original: {fallback_error}"
+        # Commons editors rename files after the ZIM is made. The old name only redirects in the
+        # API, not on upload.wikimedia.org.
+        renamed = await _renamed_commons_file(client, commons_file)
+        if renamed:
+            for moved in (transcoded_url_for(renamed), original_url_for(renamed)):
+                payload, _ = await _fetch(client, moved, pacer)
+                if payload is not None:
+                    return DownloadResult(payload=payload, used_fallback=True)
     return DownloadResult(payload=payload, error=error)
 
 

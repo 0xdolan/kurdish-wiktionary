@@ -50,7 +50,7 @@ What the audit compares: every media reference in every page, the `media` table,
 How downloading behaves:
 
 - It follows the [Wikimedia robot policy](https://wikitech.wikimedia.org/wiki/Robot_policy): at most 2 connections and 25 Mbps, and it honours `Retry-After`. It paces itself at 1 request per second, because Wikimedia answers faster bursts with HTTP 429. The full audio set takes more than a day: the measured average is about 0.6 files per second.
-- If a converted MP3 no longer exists (HTTP 404), it tries the original recording.
+- If a converted MP3 no longer exists (HTTP 404), it tries the original recording. If that is gone too, it asks Commons whether the file was renamed and fetches it under the new name.
 - It checks that each response really is media before saving.
 - Set a User-Agent with your own contact details: `export MEDIA_USER_AGENT="MyProject/1.0 (you@example.org)"`.
 

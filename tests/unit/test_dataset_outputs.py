@@ -173,6 +173,67 @@ def test_download_retries_429_and_falls_back_to_original(
     assert (status, mime) == ("present", "audio/wav")
 
 
+@pytest.mark.parametrize(
+    ("available", "mime"),
+    [("transcoded/", "audio/mpeg"), ("/Y.oga", "audio/ogg")],
+)
+def test_download_follows_file_renamed_on_commons(
+    database: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    available: str,
+    mime: str,
+) -> None:
+    payloads = {"audio/mpeg": b"ID3\x04", "audio/ogg": b"OggS"}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if url == media_stage.COMMONS_API:
+            redirect = {"from": "File:X.wav", "to": "File:Y.oga"}
+            return httpx.Response(200, json={"query": {"redirects": [redirect]}})
+        if "Y.oga" in url and available in url and (available != "/Y.oga" or url.endswith(".oga")):
+            return httpx.Response(200, content=payloads[mime])
+        return httpx.Response(404)
+
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(media_stage, "API_MIN_INTERVAL_S", 0.0)
+    monkeypatch.setattr(
+        media_stage.httpx,
+        "AsyncClient",
+        lambda **kwargs: real_client(transport=httpx.MockTransport(handler), **kwargs),
+    )
+    conn = _conn(database)
+    conn.execute("UPDATE media SET commons_file='X.wav' WHERE kind='audio'")
+    counts = asyncio.run(media_stage.download_missing(conn, tmp_path))
+    assert counts == {"downloaded": 1, "fallback": 1, "failed": 0}
+    status, stored = conn.execute("SELECT status, mime FROM media WHERE kind='audio'").fetchone()
+    assert (status, stored) == ("present", mime)
+
+
+def test_download_fails_when_file_gone_and_not_renamed(
+    database: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == media_stage.COMMONS_API:
+            return httpx.Response(200, json={"query": {"pages": [{"missing": True}]}})
+        return httpx.Response(404)
+
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(media_stage, "API_MIN_INTERVAL_S", 0.0)
+    monkeypatch.setattr(
+        media_stage.httpx,
+        "AsyncClient",
+        lambda **kwargs: real_client(transport=httpx.MockTransport(handler), **kwargs),
+    )
+    conn = _conn(database)
+    conn.execute("UPDATE media SET commons_file='X.wav' WHERE kind='audio'")
+    assert asyncio.run(media_stage.download_missing(conn, tmp_path))["failed"] == 1
+    status, error = conn.execute("SELECT status, error FROM media WHERE kind='audio'").fetchone()
+    assert (status, error) == ("failed", "HTTP 404; original: HTTP 404")
+
+
 def test_pacer_spaces_requests_and_waits_after_429(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(media_stage, "MEDIA_MIN_INTERVAL_S", 0.05)
 
