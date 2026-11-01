@@ -12,6 +12,7 @@ MESSAGE="${1:?Give a version message}"
 
 # -t keeps Parquet and Excel as they are (Kaggle converts tabular files to CSV otherwise).
 # -r zip uploads folders, which are skipped by default.
-uvx kaggle datasets version -p "$FOLDER" -t -r zip -m "$MESSAGE"
+# --with six: the Kaggle CLI imports it without declaring it as a dependency.
+uvx --with six kaggle datasets version -p "$FOLDER" -t -r zip -m "$MESSAGE"
 ID="$(uv run python -c "import json,sys; print(json.load(open(sys.argv[1]))['id'])" "$FOLDER/dataset-metadata.json")"
-uvx kaggle datasets metadata --update -p "$FOLDER" "$ID"
+uvx --with six kaggle datasets metadata --update -p "$FOLDER" "$ID"
