@@ -351,6 +351,11 @@ def creatives() -> None:
         (s["translations"], "translations"),
         (s["audio"], "recordings, many languages"),
     ]
+    cover_tiles = [
+        (s["entries"], "entries"),
+        (s["senses"], "definitions"),
+        (s["audio"], "recordings"),
+    ]
     note = "Independent project. Text CC BY-SA 4.0 from Wîkîferheng contributors."
     formats_rows = (
         ("Parquet", "pandas, DuckDB, R"),
@@ -363,14 +368,14 @@ def creatives() -> None:
     accent = '<span class="accent">open data</span>'
     for theme, t in THEMES.items():
         shot_html(
-            f"""<div style="height:100%;padding:60px 90px;display:flex;flex-direction:column;justify-content:space-between">
-            {logo_plate(120, theme)}
-            <div><div style="font-size:82px;font-weight:700;letter-spacing:-.03em;line-height:1.05">The Kurdish Wiktionary<br>as {accent}</div>
-            <div class="small" style="font-size:30px;margin-top:20px">Every section as a table. SQL, Excel, Parquet, audio, and an offline dictionary.</div></div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px">{_tiles(tiles, 58, 22)}</div>
-            <div class="small" style="font-size:18px">{note}</div></div>""",
-            1200,
-            800,
+            # The Kaggle CLI crops by fixed pixels: header (0, 0, 560, 280), thumbnail (140, 0, 280,
+            # 280). At this exact size the header is the whole image and the thumbnail its middle.
+            f"""<div style="height:100%;display:grid;grid-template-columns:140px 280px 140px;align-items:center">
+            <div style="padding:0 6px 0 14px;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.15">Kurdish<br>Wiktionary<div class="accent" style="font-size:16px;margin-top:8px;letter-spacing:0">as open data</div></div>
+            <div style="display:flex;justify-content:center">{logo_plate(204, theme)}</div>
+            <div style="padding:0 8px 0 18px;display:grid;gap:8px">{_tiles(cover_tiles, 22, 12)}</div></div>""",
+            560,
+            280,
             EXPORT / f"kaggle-cover-{theme}.png",
             theme,
         )

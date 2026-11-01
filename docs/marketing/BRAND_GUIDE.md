@@ -89,7 +89,7 @@ uv run python scripts/build_brand.py creatives site  # Only ads and landing page
 
 | Asset | Size | For |
 |---|---|---|
-| `export/kaggle-cover-{light,dark}.png` | 1200 x 800 | Kaggle cover; Kaggle crops it, so check the preview |
+| `export/kaggle-cover-{light,dark}.png` | 560 x 280 | Kaggle cover. Keep this exact size: the Kaggle CLI crops by fixed pixels, and the thumbnail is the middle 280 x 280 |
 | `export/social-card-{light,dark}.png` | 1200 x 630 | Link previews, X, LinkedIn, Facebook |
 | `export/ad-square-{light,dark}.png` | 1080 x 1080 | Instagram, LinkedIn, Facebook feed |
 | `export/ad-portrait-{light,dark}.png` | 1080 x 1350 | Instagram feed |
